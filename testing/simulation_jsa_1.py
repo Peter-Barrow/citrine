@@ -26,7 +26,7 @@ def simulation():
 
     # Define a range of wavelengths for signal and idler (in nm)
     spectral_width = Wavelength(25, Magnitude.nano)
-    steps = 256
+    steps = 1024
     lambda_s = spectral_window(lambda_s_central, spectral_width, steps)
     lambda_i = spectral_window(lambda_i_central, spectral_width, steps)
 

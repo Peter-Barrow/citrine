@@ -1,6 +1,7 @@
 from .citrine import SellmeierCoefficients, Crystal, Orientation
 from numpy import array
 
+# TODO: add reference
 sellmeier_e_ppKTP = SellmeierCoefficients(
     zeroth_order=[2.09930, 0.922683, 0.04676950, 0.0138408],
     first_order=array([6.2897, 6.3061, -6.0629, 2.6486]) * (1e-6),
@@ -8,6 +9,7 @@ sellmeier_e_ppKTP = SellmeierCoefficients(
     temperature=25,
 )
 
+# TODO: add reference
 sellmeier_o_ppKTP = SellmeierCoefficients(
     zeroth_order=[
         2.12725,
@@ -22,7 +24,6 @@ sellmeier_o_ppKTP = SellmeierCoefficients(
     temperature=25,
 )
 
-# Define the ppKTP crystal
 ppKTP = Crystal(
     name='ppKTP',
     sellmeier_o=sellmeier_o_ppKTP,
@@ -32,6 +33,7 @@ ppKTP = Crystal(
     idler_orientation=Orientation.ordinary,
 )
 
+# TODO: add reference
 sellmeier_e_KTPrifr = SellmeierCoefficients(
     zeroth_order=None,
     first_order=array([9.9587, 9.9228, -8.9603, 4.1010]) * (1e-6),
@@ -40,6 +42,7 @@ sellmeier_e_KTPrifr = SellmeierCoefficients(
 )
 
 
+# TODO: add reference
 sellmeier_o_KTPrifr = SellmeierCoefficients(
     zeroth_order=None,
     first_order=array([6.2897, 6.3061, -6.0629, 2.6486]) * (1e-6),
@@ -47,7 +50,6 @@ sellmeier_o_KTPrifr = SellmeierCoefficients(
     temperature=25,
 )
 
-# Define the ppKTP crystal
 KTPrifr = Crystal(
     name='KTPrifr',
     sellmeier_o=sellmeier_o_KTPrifr,
