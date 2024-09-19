@@ -1,0 +1,26 @@
+[project]
+name = "citrine"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Peter Thomas Barrow", email = "peter.barrow.93@gmail.com"}
+]
+readme = "README.md"
+dependencies = ["numpy"]
+license = {file = "LICENSE"}
+
+[project.urls]
+Homepage = "https://github.com/Peter-Barrow/citrine"
+Repository = "https://github.com/Peter-Barrow/citrine.git"
+Issues = "https://github.com/Peter-Barrow/citrine/issues"
+# Documentation = ""
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# [tool.setuptools.packages.find]
+# # where = [
+# #     "src/citrine"
+# # ]
+# exclude = ["site", "testing"]
