@@ -4,10 +4,24 @@ from typing import Union, Literal, List, Optional, Tuple
 import numpy as np
 from numpy.typing import NDArray
 
+__all__ = [
+    'Magnitude',
+    'AngularFrequency',
+    'Wavelength',
+    'spectral_window',
+    'SellmeierCoefficients',
+    'refractive_index',
+    'Orientation',
+    'Crystal',
+    'calculate_grating_period',
+    'delta_k_matrix',
+    'phase_matching_function',
+    'pump_envelope_gaussian',
+    'bandwidth_conversion',
+]
+
 # Constants
 c = 299792458  # Speed of light in m/s
-
-# --- Enum & Classes Definitions ---
 
 
 class Magnitude(Enum):
