@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Union, Literal, List, Optional, Tuple
+from typing import Union, Literal, List, Optional, Tuple, Callable
 import numpy as np
 from numpy.typing import NDArray
 
@@ -10,6 +10,9 @@ __all__ = [
     'Wavelength',
     'spectral_window',
     'SellmeierCoefficients',
+    '_permittivity',
+    '_n_0',
+    '_n_i',
     'refractive_index',
     'Orientation',
     'Crystal',
@@ -17,8 +20,12 @@ __all__ = [
     'delta_k_matrix',
     'phase_matching_function',
     'pump_envelope_gaussian',
+    'pump_envelope_sech2',
     'bandwidth_conversion',
+    'Time',
+    'hong_ou_mandel_interference',
 ]
+
 
 # Constants
 c = 299792458  # Speed of light in m/s
@@ -93,14 +100,14 @@ class Wavelength:
         """
         return AngularFrequency((2 * np.pi * c) / self.to_absolute().value)
 
-    def as_wavevector(self) -> float:
+    def as_wavevector(self, refractive_index: float = 1.0) -> float:
         """
         Convert the wavelength to a wavevector.
 
         Returns:
             float: The wavevector.
         """
-        return (2 * np.pi) / self.to_absolute().value
+        return (2 * np.pi * refractive_index) / self.to_absolute().value
 
 
 def spectral_window(
@@ -156,17 +163,17 @@ def _permittivity(
     Returns:
         float: The permittivity value.
     """
-    wl = wavelength_um**2
-    a = 1
-    b = a + 1
-    p = sellmeier[0]
-    lim: int = int(np.ceil((len(sellmeier) - 2) / 2))
-    for i in range(0, lim):
-        p += sellmeier[a] / (1 - sellmeier[b] / wl)
-        a += 2
-        b += 2
 
-    p -= sellmeier[-1] * wl
+    first, *coeffs, last = sellmeier
+    assert len(coeffs) % 2 == 0
+
+    wl = wavelength_um**2
+    p: float = first
+    # TODO: comment whats going on here with the slice
+    for numer, denom in zip(coeffs[0::2], coeffs[1::2]):
+        p += numer / (1 - denom / wl)
+
+    p -= last * wl
     return p
 
 
@@ -399,6 +406,10 @@ def delta_k_matrix(
     k_i = (2 * np.pi * n_i) / wl_i.value
     k_p = (2 * np.pi * n_p) / wl_p.value
 
+    # k_s = wl_s.as_wavevector(n_s)
+    # k_i = wl_s.as_wavevector(n_i)
+    # k_p = wl_s.as_wavevector(n_p)
+
     # Δk calculation
     delta_k = k_p - k_s - k_i
 
@@ -460,6 +471,29 @@ def pump_envelope_gaussian(
     return pump_envelope
 
 
+def pump_envelope_sech2(
+    lambda_p: Wavelength,
+    sigma_p: float,  # TODO: pump width needs its own type
+    lambda_s: Wavelength,
+    lambda_i: Wavelength,
+) -> np.ndarray:
+    lambda_s_grid, lambda_i_grid = np.meshgrid(
+        lambda_s.value, lambda_i.value, indexing='ij'
+    )
+
+    # Convert to Wavelength objects for both grids
+    lambda_s_grid = Wavelength(lambda_s_grid, lambda_s.unit)
+    lambda_i_grid = Wavelength(lambda_i_grid, lambda_i.unit)
+
+    # Convert signal and idler wavelengths to angular frequencies
+    omega_s = lambda_s_grid.as_angular_frequency().value
+    omega_i = lambda_i_grid.as_angular_frequency().value
+    omega_p = lambda_p.as_angular_frequency().value
+
+    pump = (1 / np.cosh(np.pi * sigma_p * (omega_s + omega_i - omega_p))) ** 2
+    return pump
+
+
 def bandwidth_conversion(
     delta_lambda_FWHM: Wavelength, pump_wl: Wavelength
 ) -> float:
@@ -480,3 +514,163 @@ def bandwidth_conversion(
     )
     delta_nu = delta_nu_FWHM / np.sqrt(2 * np.log(2))
     return delta_nu
+
+
+@dataclass
+class Time:
+    """
+    Class to represent time in chosen units
+
+    Attributes:
+        value (Union[float, np.ndarray]): The time in chosen units
+        unit (Magnitude): The unit of time
+
+    """
+
+    value: Union[float, np.ndarray]
+    unit: Magnitude
+
+    def to_unit(self, new_unit: Magnitude) -> 'Time':
+        """
+        Convert the time to a new unit.
+
+        Args:
+            new_unit (Magnitude): The desired unit for the Time.
+
+        Returns:
+            time: New Time object with converted units.
+        """
+        ratio: float = self.unit.value - new_unit.value
+        return Time(self.value * (10**ratio), new_unit)
+
+    def to_absolute(self) -> 'Time':
+        """
+        Convert the time to base units (seconds).
+
+        Returns:
+            Time: Time in seconds.
+        """
+        return Time(self.value * (10**self.unit.value), Magnitude.base)
+
+
+def hong_ou_mandel_interference(
+    joint_spectral_amplitude,
+    lambda_s: Wavelength,
+    lambda_i: Wavelength,
+    delays: Time,
+) -> Tuple[NDArray, float, float, float]:
+    u, d, v = np.linalg.svd(joint_spectral_amplitude)
+    d_diag = np.diag(d)
+    u_conj = np.conj(u)
+
+    probabilities = np.zeros(delays.value.size)
+
+    freq_s = lambda_s.as_angular_frequency().value
+    freq_i = lambda_i.as_angular_frequency().value
+
+    delays_absolute = delays.to_absolute().value
+
+    for i, tau in enumerate(delays_absolute):
+        intereference_s = np.dot(v * np.exp(-1j * freq_s * tau), u_conj)
+
+        intereference_i = np.dot(u.T, np.conj(v * np.exp(-1j * freq_i * tau)).T)
+
+        interference = intereference_s * intereference_i
+        interference = np.dot(d_diag, np.dot(interference, d_diag))
+
+        probabilities[i] = interference.sum()
+
+    probabilities = probabilities / probabilities.max()
+
+    probabilities = 0.5 - (0.5 * probabilities)
+
+    d = d / np.sqrt(np.sum(d * np.conj(d)))
+    purity = np.sum((d * np.conj(d)) ** 2)
+    schmidt_number = 1 / np.sum(d**4)
+    entropy = -np.sum((d**2) * np.log2(d**2))
+
+    return probabilities, purity, schmidt_number, entropy
+
+
+def _apodisation_amplitude(
+    domain_width: float,
+    poling_period: float,
+    index: int,
+    orientation: Union[List[int], NDArray],
+):
+    total = 0.0
+    for i in range(index):
+        total += (
+            np.exp((2 * 1j * (i + 1) * np.pi * domain_width) / poling_period)
+            * orientation[i]
+        )
+
+    amplitude = (
+        (poling_period / (2 * np.pi))
+        * (np.exp(-1j * ((2 * np.pi) / poling_period) * domain_width) - 1)
+        * total
+    )
+
+    return amplitude
+
+
+def _apodisation_error(
+    domain_width: float,
+    poling_period: float,
+    index: int,
+    orientation: Union[List[int], NDArray],
+    target: complex,
+):
+    amplitude = _apodisation_amplitude(
+        domain_width, poling_period, index, orientation
+    )
+    error = np.abs(amplitude - target)
+    return error
+
+
+def apodisation(
+    crystal_length: float,
+    poling_period: float,
+    divisions: float,
+    target_function: Callable[[float], complex],
+):
+    domain_width = poling_period / (2 * divisions)
+    domains = round(crystal_length / domain_width)
+
+    orientation = []
+    orientation_up = []
+    orientation_down = []
+
+    error_up = []
+    error_down = []
+
+    for i in range(domains):
+        orientation_up = orientation + [1]
+        orientation_down = orientation + [-1]
+
+        j = i + 1
+        target = target_function(j * domain_width)
+
+        error_up = _apodisation_error(
+            domain_width, poling_period, j, orientation_up, target
+        )
+        error_down = _apodisation_error(
+            domain_width, poling_period, j, orientation_down, target
+        )
+
+        if error_up <= error_down:
+            orientation = orientation_up
+        else:
+            orientation = orientation_down
+
+    # NOTE: this is essentially just run-length encoding, find someway to simplify
+    domain_lengths = []  # TODO: should probably be called crystal_wall_position?
+    run_length: int = 1
+    for i in range(1, len(orientation)):
+        if orientation[i] == orientation[i - 1]:
+            run_length += 1
+        else:
+            domain_lengths += [run_length * domain_width]
+            run_length = 1
+
+    return (domain_lengths, orientation)

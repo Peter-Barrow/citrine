@@ -1,4 +1,4 @@
-site_name: "tangy"
+site_name: "citrine"
 site_author: Peter Barrow
 
 repo_name: PeterBarrow/citrine
@@ -70,10 +70,16 @@ plugins:
             show_symbol_type_heading: true
             show_category_heading: true
             summary: true
-  - mkdocs-jupyter
+  - mkdocs-jupyter:
+      ignore_h1_titles: True
+      execute: True
+      include_requirejs: true
+      highlight_extra_classes: "custom-css-classes"
 
 nav:
   - "Home": index.md
+  - "Guides":
+    - "Getting Started": first_steps.ipynb
   - "API Reference": api.md
   - "License": license.md
 
