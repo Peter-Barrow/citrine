@@ -100,7 +100,9 @@ class Wavelength:
         """
         return AngularFrequency((2 * np.pi * c) / self.to_absolute().value)
 
-    def as_wavevector(self, refractive_index: float = 1.0) -> float:
+    def as_wavevector(
+        self, refractive_index: float = 1.0
+    ) -> float | NDArray[np.floating]:
         """
         Convert the wavelength to a wavevector.
 
@@ -151,8 +153,9 @@ class SellmeierCoefficients:
 
 
 def _permittivity(
-    sellmeier: Union[List[float], NDArray], wavelength_um: float
-) -> float:
+    sellmeier: Union[List[float], NDArray],
+    wavelength_um: Union[float, NDArray[np.floating]],
+) -> Union[float, NDArray[np.floating]]:
     """
     Compute the permittivity using the Sellmeier equation.
 
@@ -168,7 +171,7 @@ def _permittivity(
     assert len(coeffs) % 2 == 0
 
     wl = wavelength_um**2
-    p: float = first
+    p = first
     # TODO: comment whats going on here with the slice
     for numer, denom in zip(coeffs[0::2], coeffs[1::2]):
         p += numer / (1 - denom / wl)
@@ -177,7 +180,10 @@ def _permittivity(
     return p
 
 
-def _n_0(sellmeier: Union[List[float], NDArray], wavelength_um: float) -> float:
+def _n_0(
+    sellmeier: Union[List[float], NDArray],
+    wavelength_um: Union[float, NDArray[np.floating]],
+) -> Union[float, NDArray[np.floating]]:
     """
     Calculate the refractive index (n_0) using the zeroth-order Sellmeier coefficients.
 
@@ -191,7 +197,10 @@ def _n_0(sellmeier: Union[List[float], NDArray], wavelength_um: float) -> float:
     return np.sqrt(_permittivity(sellmeier, wavelength_um))
 
 
-def _n_i(sellmeier: Union[List[float], NDArray], wavelength_um: float) -> float:
+def _n_i(
+    sellmeier: Union[List[float], NDArray[np.floating]],
+    wavelength_um: Union[float, NDArray[np.floating]],
+) -> Union[float, NDArray[np.floating]]:
     """
     Calculate the refractive index (n_i) using the higher-order Sellmeier coefficients.
 
@@ -212,7 +221,7 @@ def refractive_index(
     sellmeier: SellmeierCoefficients,
     wavelength: Wavelength,
     temperature: Optional[float] = None,
-) -> float:
+) -> Union[float, NDArray[np.floating]]:
     """
     Calculate the refractive index for a given wavelength and temperature using the Sellmeier equation.
 
@@ -228,13 +237,25 @@ def refractive_index(
         temperature = sellmeier.temperature
 
     wavelength_um = wavelength.to_unit(Magnitude.micro).value
-    n0 = 0
+    n0: Union[float, NDArray[np.floating]] = 0.0
     if sellmeier.zeroth_order is not None:
         n0 = _n_0(sellmeier.zeroth_order, wavelength_um)
-    n1 = _n_i(sellmeier.first_order, wavelength_um)
-    n2 = _n_i(sellmeier.second_order, wavelength_um)
+
+    n1 = None
+    if sellmeier.first_order is not None:
+        n1 = _n_i(sellmeier.first_order, wavelength_um)
+
+    n2 = None
+    if sellmeier.second_order is not None:
+        n2 = _n_i(sellmeier.second_order, wavelength_um)
 
     t_offset = temperature - sellmeier.temperature
+
+    if n1 is None:
+        n1 = 0.0
+
+    if n2 is None:
+        n2 = 0.0
 
     n = n0 + (n1 * t_offset) + (n2 * t_offset**2)
     return n
@@ -271,10 +292,10 @@ class Crystal:
     def refractive_index(
         self,
         wavelength: Wavelength,
-        polarization: Literal['ordinary', 'extraordinary'],
+        polarization: Orientation,
         photon: Literal['pump', 'signal', 'idler'],
         temperature: Optional[float] = None,
-    ) -> float:
+    ) -> Union[float, NDArray[np.floating]]:
         """
         Calculate the refractive index for a given wavelength and polarization using the Sellmeier equation.
 
@@ -287,9 +308,10 @@ class Crystal:
         Returns:
             float: Refractive index.
         """
-        if polarization == 'ordinary':
+
+        if polarization == Orientation.ordinary:
             sellmeier = self.sellmeier_o
-        elif polarization == 'extraordinary':
+        elif polarization == Orientation.extraordinary:
             sellmeier = self.sellmeier_e
         else:
             raise ValueError(
@@ -304,7 +326,11 @@ class Crystal:
         signal_wavelength: Wavelength,
         idler_wavelength: Wavelength,
         temperature: Optional[float] = None,
-    ) -> Tuple[float, float, float]:
+    ) -> Tuple[
+        Union[float, NDArray[np.floating]],
+        Union[float, NDArray[np.floating]],
+        Union[float, NDArray[np.floating]],
+    ]:
         """
         Calculate the refractive indices for the pump, signal, and idler photons.
 
@@ -321,16 +347,16 @@ class Crystal:
         # TODO: refactor, there should be a convenient way to remove the "if" check on each call self.refractive_index
 
         n_pump = self.refractive_index(
-            pump_wavelength, self.pump_orientation.name, 'pump', temperature
+            pump_wavelength, self.pump_orientation, 'pump', temperature
         )
         n_signal = self.refractive_index(
             signal_wavelength,
-            self.signal_orientation.name,
+            self.signal_orientation,
             'signal',
             temperature,
         )
         n_idler = self.refractive_index(
-            idler_wavelength, self.idler_orientation.name, 'idler', temperature
+            idler_wavelength, self.idler_orientation, 'idler', temperature
         )
         return n_pump, n_signal, n_idler
 
@@ -340,7 +366,7 @@ def calculate_grating_period(
     lambda_s_central: Wavelength,
     lambda_i_central: Wavelength,
     crystal: Crystal,
-) -> float:
+) -> Union[float, NDArray[np.floating]]:
     """
     Calculate the grating period (Λ) for the phase matching condition.
 
@@ -373,7 +399,7 @@ def delta_k_matrix(
     lambda_s: Wavelength,
     lambda_i: Wavelength,
     crystal: Crystal,
-) -> np.ndarray:
+) -> Union[float, NDArray[np.floating]]:
     """
     Calculate the Δk matrix for the phase matching function using the wavevector.
 
@@ -452,13 +478,13 @@ def pump_envelope_gaussian(
         np.ndarray: A 2D pump envelope matrix.
     """
     # Create meshgrid for signal and idler wavelengths
-    lambda_s_grid, lambda_i_grid = np.meshgrid(
+    lambda_s_meshgrid, lambda_i_meshgrid = np.meshgrid(
         lambda_s.value, lambda_i.value, indexing='ij'
     )
 
     # Convert to Wavelength objects for both grids
-    lambda_s_grid = Wavelength(lambda_s_grid, lambda_s.unit)
-    lambda_i_grid = Wavelength(lambda_i_grid, lambda_i.unit)
+    lambda_s_grid = Wavelength(lambda_s_meshgrid, lambda_s.unit)
+    lambda_i_grid = Wavelength(lambda_i_meshgrid, lambda_i.unit)
 
     # Convert signal and idler wavelengths to angular frequencies
     omega_s = lambda_s_grid.as_angular_frequency().value
@@ -477,13 +503,13 @@ def pump_envelope_sech2(
     lambda_s: Wavelength,
     lambda_i: Wavelength,
 ) -> np.ndarray:
-    lambda_s_grid, lambda_i_grid = np.meshgrid(
+    lambda_s_meshgrid, lambda_i_meshgrid = np.meshgrid(
         lambda_s.value, lambda_i.value, indexing='ij'
     )
 
     # Convert to Wavelength objects for both grids
-    lambda_s_grid = Wavelength(lambda_s_grid, lambda_s.unit)
-    lambda_i_grid = Wavelength(lambda_i_grid, lambda_i.unit)
+    lambda_s_grid = Wavelength(lambda_s_meshgrid, lambda_s.unit)
+    lambda_i_grid = Wavelength(lambda_i_meshgrid, lambda_i.unit)
 
     # Convert signal and idler wavelengths to angular frequencies
     omega_s = lambda_s_grid.as_angular_frequency().value
@@ -527,8 +553,26 @@ class Time:
 
     """
 
-    value: Union[float, np.ndarray]
+    value: Union[float, NDArray[np.floating]]
     unit: Magnitude
+
+    def count(self) -> int:
+        n: int = 1
+
+        try:
+            n = len(self.value)
+        except TypeError:
+            n = 1
+
+        return n
+
+    def as_array(self) -> NDArray[np.floating]:
+        data: NDArray[np.floating]
+        if self.count() > 1:
+            data = self.value
+        else:
+            data = np.asarray([self.value])
+        return data
 
     def to_unit(self, new_unit: Magnitude) -> 'Time':
         """
@@ -541,7 +585,7 @@ class Time:
             time: New Time object with converted units.
         """
         ratio: float = self.unit.value - new_unit.value
-        return Time(self.value * (10**ratio), new_unit)
+        return Time(self.as_array() * (10**ratio), new_unit)
 
     def to_absolute(self) -> 'Time':
         """
@@ -550,7 +594,7 @@ class Time:
         Returns:
             Time: Time in seconds.
         """
-        return Time(self.value * (10**self.unit.value), Magnitude.base)
+        return Time(self.as_array() * (10**self.unit.value), Magnitude.base)
 
 
 def hong_ou_mandel_interference(
@@ -559,16 +603,27 @@ def hong_ou_mandel_interference(
     lambda_i: Wavelength,
     delays: Time,
 ) -> Tuple[NDArray, float, float, float]:
+    """
+    Calculates HOM interference between two single-photon spectra
+
+    Arguments:
+
+    Returns:
+
+    """
+
     u, d, v = np.linalg.svd(joint_spectral_amplitude)
     d_diag = np.diag(d)
     u_conj = np.conj(u)
 
-    probabilities = np.zeros(delays.value.size)
+    probabilities: NDArray[np.floating] = np.zeros(
+        delays.count(), dtype=np.float64
+    )
 
     freq_s = lambda_s.as_angular_frequency().value
     freq_i = lambda_i.as_angular_frequency().value
 
-    delays_absolute = delays.to_absolute().value
+    delays_absolute = delays.to_absolute().as_array()
 
     for i, tau in enumerate(delays_absolute):
         intereference_s = np.dot(v * np.exp(-1j * freq_s * tau), u_conj)
@@ -578,7 +633,7 @@ def hong_ou_mandel_interference(
         interference = intereference_s * intereference_i
         interference = np.dot(d_diag, np.dot(interference, d_diag))
 
-        probabilities[i] = interference.sum()
+        probabilities[i] = np.abs(interference.sum())
 
     probabilities = probabilities / probabilities.max()
 

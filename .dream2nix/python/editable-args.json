@@ -1,0 +1,11 @@
+{
+  "editables": {
+    "citrine": "."
+  },
+  "findRoot": "/nix/store/j7bhy2r0cc4cxqn0693im8wkqbakp54k-find-root.py",
+  "pyEnv": "/nix/store/7n6jky7wrxj109a7fbxy212hjxa9yz2z-python3-3.12.5-env",
+  "rootName": "citrine",
+  "sitePackages": "lib/python3.12/site-packages",
+  "storeDir": "/nix/store",
+  "unzip": "/nix/store/yfbcalvl0y90x0j13w0m4niw3dl0hx77-unzip-6.0"
+}

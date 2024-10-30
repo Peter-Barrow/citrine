@@ -1,24 +1,23 @@
-import os
-import sys
+from citrine import (
+    Wavelength,
+    Magnitude,
+    spectral_window,
+    bandwidth_conversion,
+    delta_k_matrix,
+    calculate_grating_period,
+    phase_matching_function,
+    pump_envelope_gaussian,
+    Time,
+    hong_ou_mandel_interference,
+)
 
-sys.path.append(os.path.abspath('~/Projects/citrine/src/citrine'))
-
-# from citrine import (
-#     Wavelength,
-#     Magnitude,
-#     spectral_window,
-#     bandwidth_conversion,
-#     delta_k_matrix,
-#     calculate_grating_period,
-#     pump_envelope_sech2,
-#     phase_matching_function,
-#     Time,
-#     hong_ou_mandel_interference,
-# )
-from citrine import *
+# from citrine import *
 from citrine.crystals import ppKTP
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
+
+matplotlib.use('TkAgg')
 
 
 def simulation():
@@ -140,7 +139,7 @@ def simulation():
 
     # Next calculate HOM dip
 
-    delays = Time(np.linspace(-10, 10, 128), Magnitude.pico)
+    delays = Time(np.linspace(-10, 10, 256), Magnitude.pico)
     hom_probabilities, purity, schmidt_number, entropy = (
         hong_ou_mandel_interference(JSA, lambda_s, lambda_i, delays)
     )

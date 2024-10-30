@@ -6,7 +6,7 @@ authors = [
     {name = "Peter Thomas Barrow", email = "peter.barrow.93@gmail.com"}
 ]
 readme = "README.md"
-dependencies = ["numpy"]
+dependencies = ["numpy", "matplotlib"]
 license = {file = "LICENSE"}
 
 [project.urls]
@@ -16,7 +16,7 @@ Issues = "https://github.com/Peter-Barrow/citrine/issues"
 # Documentation = ""
 
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools", "build", "wheel"]
 build-backend = "setuptools.build_meta"
 
 # [tool.setuptools.packages.find]
