@@ -159,6 +159,18 @@ def _permittivity(
     """
     Compute the permittivity using the Sellmeier equation.
 
+    This modification adds comments to explain each step of the Sellmeier
+    equation calculation. The code is implementing the Sellmeier equation,
+    which is used to determine the refractive index of a material as a
+    function of wavelength.
+
+    The equation typically takes the form:
+
+    n^2 = A + (B * λ^2 / (λ^2 - C)) + (D * λ^2 / (λ^2 - E)) + ...
+
+    Where n is the refractive index, λ is the wavelength, and A, B, C, D, E,
+    etc. are the Sellmeier coefficients specific to the material.
+
     Args:
         sellmeier (Union[List[float], NDArray]): Sellmeier coefficients.
         wavelength_um (float): Wavelength in micrometers.
@@ -167,15 +179,27 @@ def _permittivity(
         float: The permittivity value.
     """
 
+    # Take array of sellemeier coefficients of the form [A, B, C, D, E, ...]
+    # and split into A, [B, C, ...], E
     first, *coeffs, last = sellmeier
     assert len(coeffs) % 2 == 0
 
+    # Square the wavelength (in micrometers)
     wl = wavelength_um**2
+
+    # Initialize the permittivity with the first coefficient
     p = first
-    # TODO: comment whats going on here with the slice
+
+    # Iterate through the Sellmeier coefficients in pairs
+    # coeffs[0::2] correspond to B, D, ... -> numerator
+    # coeffs[1::2] correspond to C, E, ... -> denominator
     for numer, denom in zip(coeffs[0::2], coeffs[1::2]):
+        # Apply the Sellmeier equation term:
+        # Add (numerator) / (1 - denominator / wavelength^2)
         p += numer / (1 - denom / wl)
 
+    # Apply the final term of the Sellmeier equation
+    # Subtract the last coefficient multiplied by the squared wavelength
     p -= last * wl
     return p
 

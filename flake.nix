@@ -47,6 +47,10 @@
           pkgs.ruff
           pkgs.black
           python.pkgs.matplotlib
+          # python.pkgs.numba
+          python.pkgs.jupyterlab
+          pkgs.autoPatchelfHook
+          pkgs.tbb
         ];
       };
     });

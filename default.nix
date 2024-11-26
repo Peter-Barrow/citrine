@@ -32,6 +32,7 @@ in {
     pyproject = true;  # 
     pythonImportsCheck = [ # 
       "citrine"
+      # "numba"
       "numpy"
       "matplotlib"
       "PyQt6"

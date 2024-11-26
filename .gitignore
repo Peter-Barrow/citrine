@@ -8,3 +8,5 @@ __pycache__
 .mypy_cache
 .virtual_documents
 .python-version
+.dream2nix
+lock.*.json
