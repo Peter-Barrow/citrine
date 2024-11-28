@@ -8,6 +8,8 @@ from citrine import (
     pump_envelope_gaussian,
 )
 
+from citrine.phase_matching import pmf_gaussian, pmf_antisymmetric
+
 # from citrine import *
 from citrine.crystals import ppKTP
 import numpy as np
@@ -16,11 +18,6 @@ import matplotlib
 from seaborn import color_palette
 
 matplotlib.use('TkAgg')
-
-
-def phase_matching_function_antisymmetric(delta_k, poling_period, sigma):
-    diff = delta_k - ((2 * np.pi) / poling_period)
-    return np.exp((1j * diff * sigma) ** 2) * diff
 
 
 def simulation():
@@ -60,13 +57,20 @@ def simulation():
         ppKTP,
     )
 
-    crystal_length = 1e-2
+    crystal_length = 2e-2
 
     # Calculate the phase matching function
     # phase_matching = phase_matching_function(delta_k, grating_period, 1e-2)
-    phase_matching = phase_matching_function_antisymmetric(
-        delta_k, grating_period, crystal_length / 2
-    )
+    gaussian = False
+
+    if gaussian:
+        phase_matching = pmf_gaussian(
+            delta_k, grating_period, crystal_length / 2
+        )
+    else:
+        phase_matching = pmf_antisymmetric(
+            delta_k, grating_period, crystal_length / 2
+        )
 
     # Calculate the Gaussian pump envelope
     # tau_p = 0.1e-12
