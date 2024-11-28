@@ -57,6 +57,13 @@
         "url": "https://files.pythonhosted.org/packages/88/ef/eb23f262cca3c0c4eb7ab1933c3b1f03d021f2c48f54763065b6f0e321be/packaging-24.2-py3-none-any.whl",
         "version": "24.2"
       },
+      "pandas": {
+        "is_direct": false,
+        "sha256": "fffb8ae78d8af97f849404f21411c95062db1496aeb3e56f146f0355c9989319",
+        "type": "url",
+        "url": "https://files.pythonhosted.org/packages/38/f8/d8fddee9ed0d0c0f4a2132c1dfcf0e3e53265055da8df952a53e7eaf178c/pandas-2.2.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "version": "2.2.3"
+      },
       "pillow": {
         "is_direct": false,
         "sha256": "00177a63030d612148e659b55ba99527803288cea7c75fb05766ab7981a8c1b7",
@@ -85,6 +92,20 @@
         "url": "https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
         "version": "2.9.0.post0"
       },
+      "pytz": {
+        "is_direct": false,
+        "sha256": "31c7c1817eb7fae7ca4b8c7ee50c72f93aa2dd863de768e1ef4245d426aa0725",
+        "type": "url",
+        "url": "https://files.pythonhosted.org/packages/11/c3/005fcca25ce078d2cc29fd559379817424e94885510568bc1bc53d7d5846/pytz-2024.2-py2.py3-none-any.whl",
+        "version": "2024.2"
+      },
+      "seaborn": {
+        "is_direct": false,
+        "sha256": "636f8336facf092165e27924f223d3c62ca560b1f2bb5dff7ab7fad265361987",
+        "type": "url",
+        "url": "https://files.pythonhosted.org/packages/83/11/00d3c3dfc25ad54e731d91449895a79e4bf2384dc3ac01809010ba88f6d5/seaborn-0.13.2-py3-none-any.whl",
+        "version": "0.13.2"
+      },
       "setuptools": {
         "is_direct": false,
         "sha256": "ce74b49e8f7110f9bf04883b730f4765b774ef3ef28f722cce7c273d253aaf7d",
@@ -99,12 +120,19 @@
         "url": "https://files.pythonhosted.org/packages/d9/5a/e7c31adbe875f2abbb91bd84cf2dc52d792b5a01506781dbcf25c91daf11/six-1.16.0-py2.py3-none-any.whl",
         "version": "1.16.0"
       },
+      "tzdata": {
+        "is_direct": false,
+        "sha256": "a48093786cdcde33cad18c2555e8532f34422074448fbc874186f0abd79565cd",
+        "type": "url",
+        "url": "https://files.pythonhosted.org/packages/a6/ab/7e5f53c3b9d14972843a647d8d7a853969a58aecc7559cb3267302c94774/tzdata-2024.2-py2.py3-none-any.whl",
+        "version": "2024.2"
+      },
       "wheel": {
         "is_direct": false,
-        "sha256": "52f0baa5e6522155090a09c6bd95718cc46956d1b51d537ea5454249edb671c7",
+        "sha256": "708e7481cc80179af0e556bbf0cc00b8444c7321e2700b8d8580231d13017248",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/92/81/65ae90d584a73ca976d8f1eb83e2f58447a4055a9fb3ae69b28721070bdf/wheel-0.45.0-py3-none-any.whl",
-        "version": "0.45.0"
+        "url": "https://files.pythonhosted.org/packages/0b/2c/87f3254fd8ffd29e4c02732eee68a83a1d3c346ae39bc6822dcbcb697f2b/wheel-0.45.1-py3-none-any.whl",
+        "version": "0.45.1"
       }
     },
     "targets": {
@@ -132,17 +160,30 @@
         ],
         "numpy": [],
         "packaging": [],
+        "pandas": [
+          "numpy",
+          "python-dateutil",
+          "pytz",
+          "tzdata"
+        ],
         "pillow": [],
         "pyparsing": [],
         "pyproject-hooks": [],
         "python-dateutil": [
           "six"
         ],
+        "pytz": [],
+        "seaborn": [
+          "matplotlib",
+          "numpy",
+          "pandas"
+        ],
         "setuptools": [],
         "six": [],
+        "tzdata": [],
         "wheel": []
       }
     }
   },
-  "invalidationHash": "a4209fd3b3a0da6efc5d8cabb9d2e3453eed83b3aac23c460cd2b541050c3a87"
+  "invalidationHash": "248aff1a325bb3269218559a60f8b1881e1a3c3328b2955609c0e0b66ab35494"
 }

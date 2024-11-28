@@ -5,7 +5,6 @@ from citrine import (
     bandwidth_conversion,
     delta_k_matrix,
     calculate_grating_period,
-    phase_matching_function,
     pump_envelope_gaussian,
 )
 
@@ -14,8 +13,14 @@ from citrine.crystals import ppKTP
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
+from seaborn import color_palette
 
 matplotlib.use('TkAgg')
+
+
+def phase_matching_function_antisymmetric(delta_k, poling_period, sigma):
+    diff = delta_k - ((2 * np.pi) / poling_period)
+    return np.exp((1j * diff * sigma) ** 2) * diff
 
 
 def simulation():
@@ -55,8 +60,13 @@ def simulation():
         ppKTP,
     )
 
+    crystal_length = 1e-2
+
     # Calculate the phase matching function
-    phase_matching = phase_matching_function(delta_k, grating_period, 1e-2)
+    # phase_matching = phase_matching_function(delta_k, grating_period, 1e-2)
+    phase_matching = phase_matching_function_antisymmetric(
+        delta_k, grating_period, crystal_length / 2
+    )
 
     # Calculate the Gaussian pump envelope
     # tau_p = 0.1e-12
@@ -77,6 +87,7 @@ def simulation():
     )
 
     colour_map = 'magma'
+    colour_map = color_palette('icefire', as_cmap=True)
 
     # Plot Δk
     axs[0, 0].pcolormesh(
@@ -106,7 +117,7 @@ def simulation():
     axs[1, 0].pcolormesh(
         lambda_i.value,
         lambda_s.value,
-        phase_matching,
+        np.real(phase_matching),
         cmap=colour_map,
         shading='gouraud',
     )
@@ -116,7 +127,11 @@ def simulation():
 
     # Plot the Joint Spectral Amplitude (JSA)
     axs[1, 1].pcolormesh(
-        lambda_i.value, lambda_s.value, JSA, cmap=colour_map, shading='gouraud'
+        lambda_i.value,
+        lambda_s.value,
+        np.real(JSA),
+        cmap=colour_map,
+        shading='gouraud',
     )
     axs[1, 1].set_title(
         r'$\alpha(\lambda_s, \lambda_i) \phi(\lambda_s, \lambda_i)$'
@@ -167,7 +182,7 @@ def simulation():
     axs.pcolormesh(
         lambda_i.value,
         lambda_s.value,
-        phase_matching,
+        np.real(phase_matching),
         cmap=colour_map,
         shading='gouraud',
     )
@@ -178,60 +193,18 @@ def simulation():
     fig, axs = plt.subplots()
     # Plot the Joint Spectral Amplitude (JSA)
     axs.pcolormesh(
-        lambda_i.value, lambda_s.value, JSA, cmap=colour_map, shading='gouraud'
+        lambda_i.value,
+        lambda_s.value,
+        np.real(JSA),
+        cmap=colour_map,
+        shading='gouraud',
     )
     axs.set_title(r'$\alpha(\lambda_s, \lambda_i) \phi(\lambda_s, \lambda_i)$')
     axs.set_xlabel(r'$\lambda_s$ (nm)')
     axs.set_ylabel(r'$\lambda_i$ (nm)')
-
-    # Next calculate HOM dip
-
-    # delays = Time(np.linspace(-10, 10, 256), Magnitude.pico)
-    # hom_probabilities, purity, schmidt_number, entropy = (
-    #     hong_ou_mandel_interference(JSA, lambda_s, lambda_i, delays)
-    # )
-
-    # fig = plt.figure()
-    # plt.plot(delays.value, hom_probabilities)
-    # plt.xlabel(f'Delay ({delays.unit.name} seconds)')
-    # plt.ylabel('Probability')
-    # plt.title(
-    #     f'Purity:{purity:.2f} | Schmidt Number:{schmidt_number:.2f} | Entropy:{entropy:.2f}'
-    # )
 
     plt.show()
 
 
 if __name__ == '__main__':
     simulation()
-
-# import sys
-#
-# sys.path.append('/home/bp38/Projects/citrine/src/')
-# from citrine import *
-# from simulation_jsa_1 import simulation
-#
-# simulation()
-
-
-# import sys
-# sys.path.append('/home/bp38/Projects/citrine/src/')
-# from citrine import *
-# import numpy as np
-# import matplotlib.pyplot as plt
-# lambda_p_central = Wavelength(775, Magnitude.nano)
-# lambda_s_central = Wavelength(1550, Magnitude.nano)
-# lambda_i_central = Wavelength(1550, Magnitude.nano)
-# spectral_width = Wavelength(25, Magnitude.nano)
-# steps = 256
-# lambda_s = spectral_window(lambda_s_central, spectral_width, steps)
-# lambda_i = spectral_window(lambda_i_central, spectral_width, steps)
-# sigma_lambda_p = Wavelength(0.5, Magnitude.nano)
-# tau_p = 1.3e-12
-# sigma_p = tau_p / (2 * np.arccosh(np.sqrt(2)))
-# pump_envelope = pump_envelope_sech2(
-#     lambda_p_central, sigma_p, lambda_s, lambda_i
-# )
-# fig = plt.figure()
-# plt.pcolormesh(pump_envelope)
-# plt.show()

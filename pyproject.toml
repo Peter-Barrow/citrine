@@ -6,7 +6,7 @@ authors = [
     {name = "Peter Thomas Barrow", email = "peter.barrow.93@gmail.com"}
 ]
 readme = "README.md"
-dependencies = ["numpy", "matplotlib"]
+dependencies = ["numpy", "matplotlib", "seaborn"]
 license = {file = "LICENSE"}
 
 [project.urls]
