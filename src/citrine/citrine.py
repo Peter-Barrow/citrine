@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Union, Literal, List, Optional, Tuple, Callable
+from typing import Union, List, Optional, Tuple, Callable
 import numpy as np
 from numpy.typing import NDArray
+from scipy.optimize import root
 
 __all__ = [
     'Magnitude',
@@ -19,11 +20,13 @@ __all__ = [
     'calculate_grating_period',
     'delta_k_matrix',
     'phase_matching_function',
-    'pump_envelope_gaussian',
-    'pump_envelope_sech2',
     'bandwidth_conversion',
     'Time',
     'hong_ou_mandel_interference',
+    'calculate_jsa_marginals',
+    'wavelength_temperature_tuning',
+    'phase_mismatch',
+    'PhaseMatchingCondition',
 ]
 
 
@@ -111,9 +114,21 @@ class Wavelength:
         """
         return (2 * np.pi * refractive_index) / self.to_absolute().value
 
+    def downconversion_result(
+        self, downconversion: 'Wavelength'
+    ) -> 'Wavelength':
+        wvl = 1 / (
+            (1 / self.to_absolute().value)
+            - (1 / downconversion.to_absolute().value)
+        )
+        return Wavelength(abs(wvl), Magnitude.base)
+
 
 def spectral_window(
-    central_wavelength: Wavelength, spectral_width: Wavelength, steps: int
+    central_wavelength: Wavelength,
+    spectral_width: Wavelength,
+    steps: int,
+    reverse: bool = False,
 ) -> Wavelength:
     """
     Generate an array of wavelengths within a specified spectral window.
@@ -128,10 +143,13 @@ def spectral_window(
     """
     width = spectral_width.to_unit(central_wavelength.unit).value / 2
     centre = central_wavelength.value
-    return Wavelength(
-        np.linspace(centre - width, centre + width, steps),
-        central_wavelength.unit,
-    )
+
+    if reverse is False:
+        wvls = np.linspace(centre - width, centre + width, steps)
+    else:
+        wvls = np.linspace(centre + width, centre - width, steps)
+
+    return Wavelength(wvls, central_wavelength.unit)
 
 
 @dataclass(frozen=True)
@@ -193,10 +211,10 @@ def _permittivity(
     # Iterate through the Sellmeier coefficients in pairs
     # coeffs[0::2] correspond to B, D, ... -> numerator
     # coeffs[1::2] correspond to C, E, ... -> denominator
-    for numer, denom in zip(coeffs[0::2], coeffs[1::2]):
+    for number, denom in zip(coeffs[0::2], coeffs[1::2]):
         # Apply the Sellmeier equation term:
         # Add (numerator) / (1 - denominator / wavelength^2)
-        p += numer / (1 - denom / wl)
+        p += number / (1 - denom / wl)
 
     # Apply the final term of the Sellmeier equation
     # Subtract the last coefficient multiplied by the squared wavelength
@@ -292,32 +310,122 @@ class Orientation(Enum):
     extraordinary = 1
 
 
-@dataclass
+class PhaseMatchingCondition(Enum):
+    """Phase-matching configurations for nonlinear optical processes.
+
+    Each configuration defines the polarization orientations for (pump, signal, idler)
+    where:
+        - o/O: ordinary polarization (horizontal, H)
+        - e/E: extraordinary polarization (vertical, V)
+
+    The configurations are:
+        Type 0 (o): All waves ordinary polarized (H,H,H)
+        Type 0 (e): All waves extraordinary polarized (V,V,V)
+        Type 1: Pump extraordinary, signal/idler ordinary (V,H,H)
+        Type 2 (o): Mixed polarizations (V,H,V)
+        Type 2 (e): Mixed polarizations (V,V,H)
+
+    Note:
+        - Ordinary (o) corresponds to horizontal (H) polarization
+        - Extraordinary (e) corresponds to vertical (V) polarization
+        - The tuple order is always (pump, signal, idler)
+    """
+
+    type0_o = (
+        Orientation.ordinary,  # pump: H
+        Orientation.ordinary,  # signal: H
+        Orientation.ordinary,  # idler: H
+    )
+    type0_e = (
+        Orientation.extraordinary,  # pump: V
+        Orientation.extraordinary,  # signal: V
+        Orientation.extraordinary,  # idler: V
+    )
+    type1 = (
+        Orientation.extraordinary,  # pump: V
+        Orientation.ordinary,  # signal: H
+        Orientation.ordinary,  # idler: H
+    )
+    type2_o = (
+        Orientation.extraordinary,  # pump: V
+        Orientation.ordinary,  # signal: H
+        Orientation.extraordinary,  # idler: V
+    )
+    type2_e = (
+        Orientation.extraordinary,  # pump: V
+        Orientation.extraordinary,  # signal: V
+        Orientation.ordinary,  # idler: H
+    )
+
+
+class Photon(Enum):
+    pump = 0
+    signal = 1
+    idler = 2
+
+
 class Crystal:
-    """
-    Class to represent a nonlinear crystal for refractive index and phase matching calculations.
+    def __init__(
+        self,
+        name: str,
+        sellmeier_o: SellmeierCoefficients,
+        sellmeier_e: SellmeierCoefficients,
+        phase_matching: PhaseMatchingCondition = PhaseMatchingCondition.type0_e,
+        doi: str = None,
+    ):
+        """
+        Class to represent a nonlinear crystal for refractive index and phase matching calculations.
 
-    Attributes:
-        name (str): Name of the crystal.
-        sellmeier_o (SellmeierCoefficients): Ordinary Sellmeier coefficients.
-        sellmeier_e (SellmeierCoefficients): Extraordinary Sellmeier coefficients.
-        pump_orientation (Orientation): Pump photon orientation.
-        signal_orientation (Orientation): Signal photon orientation.
-        idler_orientation (Orientation): Idler photon orientation.
-    """
+        Attributes:
+            name (str): Name of the crystal.
+            sellmeier_o (SellmeierCoefficients): Ordinary Sellmeier coefficients.
+            sellmeier_e (SellmeierCoefficients): Extraordinary Sellmeier coefficients.
+            phase_matching (PhaseMatchingCondition): Phase matching conditions.
+        """
+        self.name = name
+        self.sellmeier_o = sellmeier_o
+        self.sellmeier_e = sellmeier_e
+        self.phase_matching = phase_matching
+        self.doi = doi
 
-    name: str
-    sellmeier_o: SellmeierCoefficients
-    sellmeier_e: SellmeierCoefficients
-    pump_orientation: Orientation
-    signal_orientation: Orientation
-    idler_orientation: Orientation
+    @property
+    def phase_matching(self) -> PhaseMatchingCondition:
+        """Get the current phase matching condition.
+
+        Returns:
+            Current phase matching configuration.
+        """
+        return self._phase_matching
+
+    @phase_matching.setter
+    def phase_matching(self, condition: PhaseMatchingCondition):
+        """Set the phase matching condition.
+
+        Args:
+            condition: New phase matching configuration.
+
+        Raises:
+            ValueError: If condition is not a valid PhaseMatchingCondition.
+        """
+        if not isinstance(condition, PhaseMatchingCondition):
+            raise ValueError(
+                f'Phase matching condition must be a PhaseMatchingCondition, not {type(condition)}'
+            )
+        self._phase_matching = condition
+
+    def _sellmeier(self, polarisation: Orientation) -> SellmeierCoefficients:
+        if not isinstance(polarisation, Orientation):
+            raise ValueError(
+                f'Polarisation must be an Orientation, not {type(polarisation)}'
+            )
+        if polarisation == Orientation.ordinary:
+            return self.sellmeier_o
+        return self.sellmeier_e
 
     def refractive_index(
         self,
         wavelength: Wavelength,
-        polarization: Orientation,
-        photon: Literal['pump', 'signal', 'idler'],
+        photon: Photon,
         temperature: Optional[float] = None,
     ) -> Union[float, NDArray[np.floating]]:
         """
@@ -325,23 +433,14 @@ class Crystal:
 
         Args:
             wavelength (Wavelength): Wavelength.
-            polarization (Literal['ordinary', 'extraordinary']): Polarization ('ordinary' or 'extraordinary').
-            photon (Literal['pump', 'signal', 'idler']): Photon type.
+            photon (Photon): Photon type.
             temperature (Optional[float]): Temperature in Celsius (defaults to reference temperature).
 
         Returns:
             float: Refractive index.
         """
 
-        if polarization == Orientation.ordinary:
-            sellmeier = self.sellmeier_o
-        elif polarization == Orientation.extraordinary:
-            sellmeier = self.sellmeier_e
-        else:
-            raise ValueError(
-                "Polarization must be either 'ordinary' or 'extraordinary'."
-            )
-
+        sellmeier = self._sellmeier(self.phase_matching.value[photon.value])
         return refractive_index(sellmeier, wavelength, temperature)
 
     def refractive_indices(
@@ -371,16 +470,13 @@ class Crystal:
         # TODO: refactor, there should be a convenient way to remove the "if" check on each call self.refractive_index
 
         n_pump = self.refractive_index(
-            pump_wavelength, self.pump_orientation, 'pump', temperature
+            pump_wavelength, Photon.pump, temperature
         )
         n_signal = self.refractive_index(
-            signal_wavelength,
-            self.signal_orientation,
-            'signal',
-            temperature,
+            signal_wavelength, Photon.signal, temperature
         )
         n_idler = self.refractive_index(
-            idler_wavelength, self.idler_orientation, 'idler', temperature
+            idler_wavelength, Photon.idler, temperature
         )
         return n_pump, n_signal, n_idler
 
@@ -390,6 +486,7 @@ def calculate_grating_period(
     lambda_s_central: Wavelength,
     lambda_i_central: Wavelength,
     crystal: Crystal,
+    temperature: float = None,
 ) -> Union[float, NDArray[np.floating]]:
     """
     Calculate the grating period (Λ) for the phase matching condition.
@@ -408,7 +505,10 @@ def calculate_grating_period(
     # n_p = crystal.refractive_index(lambda_p_central, polarization)
 
     (n_p, n_s, n_i) = crystal.refractive_indices(
-        lambda_p_central, lambda_s_central, lambda_i_central
+        lambda_p_central,
+        lambda_s_central,
+        lambda_i_central,
+        temperature=temperature,
     )
 
     k_s = (2 * np.pi * n_s) / lambda_s_central.to_absolute().value
@@ -423,6 +523,7 @@ def delta_k_matrix(
     lambda_s: Wavelength,
     lambda_i: Wavelength,
     crystal: Crystal,
+    temperature: float = None,
 ) -> Union[float, NDArray[np.floating]]:
     """
     Calculate the Δk matrix for the phase matching function using the wavevector.
@@ -450,7 +551,12 @@ def delta_k_matrix(
         Magnitude.base,
     )
 
-    (n_p, n_s, n_i) = crystal.refractive_indices(wl_p, wl_s, wl_i)
+    (n_p, n_s, n_i) = crystal.refractive_indices(
+        wl_p,
+        wl_s,
+        wl_i,
+        temperature=temperature,
+    )
 
     k_s = (2 * np.pi * n_s) / wl_s.value
     k_i = (2 * np.pi * n_i) / wl_i.value
@@ -464,6 +570,39 @@ def delta_k_matrix(
     delta_k = k_p - k_s - k_i
 
     return delta_k
+
+
+# Phase matching condition function
+def phase_mismatch(
+    lambda_p: Wavelength,
+    lambda_s: Wavelength,
+    crystal: Crystal,
+    temperature: float,
+    grating_period: float,
+):
+    _wl_p = lambda_p.to_absolute().value
+    _wl_s = lambda_s.to_absolute().value
+    _wl_i = 1.0 / ((1.0 / _wl_p) - (1.0 / _wl_s))
+
+    wl_s = Wavelength((2 * np.pi * c) / _wl_s, Magnitude.base)
+    wl_i = Wavelength((2 * np.pi * c) / _wl_i, Magnitude.base)
+    wl_p = Wavelength((2 * np.pi * c) / _wl_p, Magnitude.base)
+
+    (n_p, n_s, n_i) = crystal.refractive_indices(
+        wl_p,
+        wl_s,
+        wl_i,
+        temperature=temperature,
+    )
+
+    # Calculate k vectors
+    k_p = (2 * np.pi * n_p) / wl_p.value
+    k_s = (2 * np.pi * n_s) / wl_s.value
+    k_i = (2 * np.pi * n_i) / wl_i.value
+    k_g = (2 * np.pi) / (grating_period)  # Grating vector
+
+    # Phase mismatch
+    return k_p - k_s - k_i - k_g
 
 
 def phase_matching_function(
@@ -483,65 +622,82 @@ def phase_matching_function(
     return np.sinc(x)
 
 
-def pump_envelope_gaussian(
-    lambda_p: Wavelength,
-    sigma_p: float,
+class PhotonType(Enum):
+    IDLER = 0
+    SIGNAL = 1
+
+
+def calculate_marginal_spectrum(
+    jsa_matrix: np.ndarray,
     lambda_s: Wavelength,
     lambda_i: Wavelength,
-) -> np.ndarray:
+    photon_type: PhotonType,
+) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Generate a pump envelope matrix with a Gaussian profile.
+    Calculate the marginal spectrum for either signal or idler photons from a JSA matrix.
 
     Args:
-        lambda_p (Wavelength): Central wavelength of the pump.
-        sigma_p (float): Pump bandwidth.
-        lambda_s (Wavelength): Signal wavelengths array.
-        lambda_i (Wavelength): Idler wavelengths array.
+        jsa_matrix: A 2D complex matrix representing the joint spectral amplitude.
+                   Shape (len(lambda_s), len(lambda_i)) with indexing='ij'.
+        lambda_s: Signal wavelengths (Wavelength type).
+        lambda_i: Idler wavelengths (Wavelength type).
+        photon_type: Enum specifying whether to calculate for SIGNAL or IDLER photon.
 
     Returns:
-        np.ndarray: A 2D pump envelope matrix.
+        Tuple containing:
+            - Array of wavelengths for the selected photon
+            - Array of corresponding intensity values (complex)
     """
-    # Create meshgrid for signal and idler wavelengths
-    lambda_s_meshgrid, lambda_i_meshgrid = np.meshgrid(
-        lambda_s.value, lambda_i.value, indexing='ij'
-    )
 
-    # Convert to Wavelength objects for both grids
-    lambda_s_grid = Wavelength(lambda_s_meshgrid, lambda_s.unit)
-    lambda_i_grid = Wavelength(lambda_i_meshgrid, lambda_i.unit)
+    pt = photon_type.value
+    assert (pt == 0) or (pt == 1), 'photon_type must be SIGNAL OR IDLER'
 
-    # Convert signal and idler wavelengths to angular frequencies
-    omega_s = lambda_s_grid.as_angular_frequency().value
-    omega_i = lambda_i_grid.as_angular_frequency().value
-    omega_p = lambda_p.as_angular_frequency().value
+    intensities = np.sum(jsa_matrix.T, axis=pt)
+    wavelengths = lambda_i.value
 
-    # Calculate the Gaussian pump envelope
-    pump_envelope = np.exp(-(((omega_s + omega_i - omega_p) / sigma_p) ** 2))
+    # if photon_type == PhotonType.IDLER:
+    #     intensities = np.flipud(intensities)
 
-    return pump_envelope
+    return wavelengths, intensities
 
 
-def pump_envelope_sech2(
-    lambda_p: Wavelength,
-    sigma_p: float,  # TODO: pump width needs its own type
+def calculate_jsa_marginals(
+    jsa_matrix: np.ndarray,
     lambda_s: Wavelength,
     lambda_i: Wavelength,
-) -> np.ndarray:
-    lambda_s_meshgrid, lambda_i_meshgrid = np.meshgrid(
-        lambda_s.value, lambda_i.value, indexing='ij'
+) -> dict:
+    """
+    Calculate both signal and idler marginal spectra from a JSA matrix.
+
+    Args:
+        jsa_matrix: A 2D complex matrix representing the joint spectral amplitude.
+                   Shape (len(lambda_s), len(lambda_i)) with indexing='ij'.
+        lambda_s: Signal wavelengths (Wavelength type).
+        lambda_i: Idler wavelengths (Wavelength type).
+
+    Returns:
+        Dictionary containing:
+            - 'signal_wl': Array of signal wavelengths
+            - 'signal_intensity': Array of signal intensity values
+            - 'idler_wl': Array of idler wavelengths
+            - 'idler_intensity': Array of idler intensity values
+    """
+    # Calculate signal marginal
+    signal_wl, signal_intensity = calculate_marginal_spectrum(
+        jsa_matrix, lambda_s, lambda_i, PhotonType.SIGNAL
     )
 
-    # Convert to Wavelength objects for both grids
-    lambda_s_grid = Wavelength(lambda_s_meshgrid, lambda_s.unit)
-    lambda_i_grid = Wavelength(lambda_i_meshgrid, lambda_i.unit)
+    # Calculate idler marginal
+    idler_wl, idler_intensity = calculate_marginal_spectrum(
+        jsa_matrix, lambda_s, lambda_i, PhotonType.IDLER
+    )
 
-    # Convert signal and idler wavelengths to angular frequencies
-    omega_s = lambda_s_grid.as_angular_frequency().value
-    omega_i = lambda_i_grid.as_angular_frequency().value
-    omega_p = lambda_p.as_angular_frequency().value
-
-    pump = (1 / np.cosh(np.pi * sigma_p * (omega_s + omega_i - omega_p))) ** 2
-    return pump
+    return {
+        'signal_wl': signal_wl,
+        'signal_intensity': signal_intensity,
+        'idler_wl': idler_wl,
+        'idler_intensity': np.flipud(idler_intensity),
+    }
 
 
 def bandwidth_conversion(
@@ -627,13 +783,36 @@ def hong_ou_mandel_interference(
     lambda_i: Wavelength,
     delays: Time,
 ) -> Tuple[NDArray, float, float, float]:
-    """
-    Calculates HOM interference between two single-photon spectra
+    """Calculates Hong-Ou-Mandel interference between two single-photon spectra.
 
-    Arguments:
+    This function computes the Hong-Ou-Mandel (HOM) interference pattern and associated
+    quantum properties from a joint spectral amplitude (JSA). It performs singular value
+    decomposition (SVD) of the JSA and calculates interference probabilities for
+    different time delays.
+
+    Args:
+        joint_spectral_amplitude: 2D array representing the joint spectral amplitude.
+        lambda_s: Signal wavelength array.
+        lambda_i: Idler wavelength array.
+        delays: Time delay array for interference calculation.
 
     Returns:
+        tuple: A tuple containing:
+            - probabilities (NDArray): Normalized HOM interference pattern
+            - purity (float): Spectral purity of the state (0 to 1)
+            - schmidt_number (float): Schmidt number indicating mode entanglement
+            - entropy (float): von Neumann entropy of the quantum state
 
+    Notes:
+        The function performs these steps:
+        1. SVD decomposition of the JSA
+        2. Calculates interference pattern for each delay
+        3. Normalizes probabilities to [0, 0.5] range
+        4. Computes quantum metrics (purity, Schmidt number, entropy)
+
+        The HOM dip depth is related to the spectral purity, with
+        perfect interference giving a dip to zero at zero delay for
+        pure states.
     """
 
     u, d, v = np.linalg.svd(joint_spectral_amplitude)
@@ -652,7 +831,10 @@ def hong_ou_mandel_interference(
     for i, tau in enumerate(delays_absolute):
         intereference_s = np.dot(v * np.exp(-1j * freq_s * tau), u_conj)
 
-        intereference_i = np.dot(u.T, np.conj(v * np.exp(-1j * freq_i * tau)).T)
+        intereference_i = np.dot(
+            u.T,
+            np.conj(v * np.exp(-1j * freq_i * tau)).T,
+        )
 
         interference = intereference_s * intereference_i
         interference = np.dot(d_diag, np.dot(interference, d_diag))
@@ -753,3 +935,94 @@ def apodisation(
             run_length = 1
 
     return (domain_lengths, orientation)
+
+
+def wavelength_temperature_tuning(
+    lambda_p: Wavelength,  # Pump wavelength (nm)
+    lambda_s: Wavelength,  # Pump wavelength (nm)
+    lambda_i: Wavelength,  # Pump wavelength (nm)
+    poling_period: float,  # Crystal poling period (μm)
+    crystal: Crystal,
+    temp_range: tuple,  # Temperature range to evaluate (°C)
+    num_points: int = 50,  # Number of calculation points
+) -> tuple:
+    """Calculate wavelength tuning curves as a function of temperature for a nonlinear crystal.
+
+    This function calculates how the signal and idler wavelengths vary with temperature
+    in a quasi-phase-matched nonlinear crystal. It uses the phase-matching condition:
+    $$ \\Delta k = k_p - k_s - k_i - k_g = 0 $$
+    where $k_p$, $k_s$, $k_i$ are the wave vectors for pump, signal, and idler,
+    and $k_g$ is the grating vector from the crystal's poling period.
+
+    Args:
+        lambda_p: Pump wavelength object.
+        lambda_s: Initial signal wavelength object.
+        lambda_i: Initial idler wavelength object.
+        poling_period: Crystal poling period in micrometers.
+        crystal: Crystal object containing material properties and orientations.
+        temp_range: Tuple of (min_temperature, max_temperature) in degrees Celsius.
+        num_points: Number of temperature points to evaluate (default: 50).
+
+    Returns:
+        tuple: A tuple containing:
+            - temperature array (ndarray): Temperature points in degrees Celsius
+            - signal_wavelengths (ndarray): Calculated signal wavelengths
+            - idler_wavelengths (ndarray): Calculated idler wavelengths
+
+    Notes:
+        The function solves the phase-matching equation at each temperature point
+        to find the signal and idler wavelengths that satisfy energy conservation:
+        $$ \\frac{1}{\\lambda_p} = \\frac{1}{\\lambda_s} + \\frac{1}{\\lambda_i} $$
+        If no solution is found at a particular temperature, NaN values are returned
+        for that point.
+    """
+    wl_p = lambda_p.to_absolute().value
+    wl_s = lambda_s.to_absolute().value
+    wl_i = lambda_i.to_absolute().value
+
+    (n_p, n_s, _) = crystal.refractive_indices(lambda_p, lambda_s, lambda_i)
+
+    k_p = (2 * np.pi * n_p) / wl_p
+    k_s = (2 * np.pi * n_s) / wl_s
+    # k_i = (2 * np.pi * n_i) / wl_i
+    k_g = (2 * np.pi) / (poling_period)  # Grating vector
+
+    signal_wavelengths = np.zeros(num_points)
+    idler_wavelengths = np.zeros(num_points)
+
+    temperature = np.linspace(temp_range[0], temp_range[1], num_points)
+
+    for i, T in enumerate(temperature):
+
+        def phase_mismatch_at_T(wl_s):
+            # _lambda_s = Wavelength(wl_s, Magnitude.base)
+            lambda_i_value = 1.0 / (
+                (1.0 / lambda_p.to_absolute().value) - (1.0 / wl_s)
+            )
+            lambda_i_obj = Wavelength(lambda_i_value, Magnitude.base)
+            _n_i = crystal.refractive_index(lambda_i_obj, Photon.idler, T)
+            k_i = (2 * np.pi * _n_i) / wl_i
+            mismatch = k_p - k_s - k_i - k_g
+            return mismatch
+
+        lambda_s_guess = lambda_s.to_absolute().value
+
+        # Use root_scalar instead of root for a single equation
+        result = root(
+            phase_mismatch_at_T,
+            lambda_s_guess,
+        )
+        if result.success:
+            lambda_s_res = result.x[0]
+            lambda_i = 1.0 / (
+                (1.0 / lambda_p.to_absolute().value) - (1.0 / lambda_s_res)
+            )
+
+            signal_wavelengths[i] = lambda_s_res
+            idler_wavelengths[i] = lambda_i
+
+        else:
+            signal_wavelengths[i] = np.nan
+            idler_wavelengths[i] = np.nan
+
+    return (temperature, signal_wavelengths, idler_wavelengths)

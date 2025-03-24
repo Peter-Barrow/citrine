@@ -1,12 +1,12 @@
 [project]
 name = "citrine"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 authors = [
     {name = "Peter Thomas Barrow", email = "peter.barrow.93@gmail.com"}
 ]
 readme = "README.md"
-dependencies = ["numpy", "matplotlib", "seaborn"]
+dependencies = ["numpy", "scipy", "matplotlib", "seaborn", "tqdm", "numba"]
 license = {file = "LICENSE"}
 
 [project.urls]
@@ -24,3 +24,6 @@ build-backend = "setuptools.build_meta"
 # #     "src/citrine"
 # # ]
 # exclude = ["site", "testing"]
+
+[tool.uv]
+managed = true

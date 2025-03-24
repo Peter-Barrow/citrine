@@ -61,7 +61,7 @@ def simulation():
 
     # Calculate the phase matching function
     # phase_matching = phase_matching_function(delta_k, grating_period, 1e-2)
-    gaussian = False
+    gaussian = True
 
     if gaussian:
         phase_matching = pmf_gaussian(
