@@ -28,7 +28,7 @@ python3 -m pip install citrine
 ### Alternatively from Git
 Install from git for the latest version
 ```sh title="git"
-python3 -m pip install git+https://gitlab.com/Peter-Barrow/citrine.git
+python3 -m pip install git+https://github.com/Peter-Barrow/citrine.git
 ```
 
 ## Quick Examples
