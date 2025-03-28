@@ -634,6 +634,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#citrine.PhaseMatchingCondition" class="md-nav__link">
+    <span class="md-ellipsis">
+      PhaseMatchingCondition
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#citrine.Crystal" class="md-nav__link">
     <span class="md-ellipsis">
       Crystal
@@ -1184,6 +1193,15 @@
   <a href="#citrine.Orientation" class="md-nav__link">
     <span class="md-ellipsis">
       Orientation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#citrine.PhaseMatchingCondition" class="md-nav__link">
+    <span class="md-ellipsis">
+      PhaseMatchingCondition
     </span>
   </a>
   
@@ -2159,8 +2177,7 @@ etc. are the Sellmeier coefficients specific to the material.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/citrine/citrine.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">179</span>
-<span class="normal">180</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">180</span>
 <span class="normal">181</span>
 <span class="normal">182</span>
 <span class="normal">183</span>
@@ -2210,7 +2227,8 @@ etc. are the Sellmeier coefficients specific to the material.</p>
 <span class="normal">227</span>
 <span class="normal">228</span>
 <span class="normal">229</span>
-<span class="normal">230</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_permittivity</span><span class="p">(</span>
+<span class="normal">230</span>
+<span class="normal">231</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_permittivity</span><span class="p">(</span>
     <span class="n">sellmeier</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">],</span>
     <span class="n">wavelength_um</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]]:</span>
@@ -2319,8 +2337,7 @@ etc. are the Sellmeier coefficients specific to the material.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/citrine/citrine.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">233</span>
-<span class="normal">234</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">234</span>
 <span class="normal">235</span>
 <span class="normal">236</span>
 <span class="normal">237</span>
@@ -2333,7 +2350,8 @@ etc. are the Sellmeier coefficients specific to the material.</p>
 <span class="normal">244</span>
 <span class="normal">245</span>
 <span class="normal">246</span>
-<span class="normal">247</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_n_0</span><span class="p">(</span>
+<span class="normal">247</span>
+<span class="normal">248</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_n_0</span><span class="p">(</span>
     <span class="n">sellmeier</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">],</span>
     <span class="n">wavelength_um</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]]:</span>
@@ -2405,8 +2423,7 @@ etc. are the Sellmeier coefficients specific to the material.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/citrine/citrine.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">250</span>
-<span class="normal">251</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">251</span>
 <span class="normal">252</span>
 <span class="normal">253</span>
 <span class="normal">254</span>
@@ -2422,7 +2439,8 @@ etc. are the Sellmeier coefficients specific to the material.</p>
 <span class="normal">264</span>
 <span class="normal">265</span>
 <span class="normal">266</span>
-<span class="normal">267</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_n_i</span><span class="p">(</span>
+<span class="normal">267</span>
+<span class="normal">268</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_n_i</span><span class="p">(</span>
     <span class="n">sellmeier</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]],</span>
     <span class="n">wavelength_um</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]]:</span>
@@ -2517,8 +2535,7 @@ etc. are the Sellmeier coefficients specific to the material.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/citrine/citrine.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">270</span>
-<span class="normal">271</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">271</span>
 <span class="normal">272</span>
 <span class="normal">273</span>
 <span class="normal">274</span>
@@ -2558,7 +2575,8 @@ etc. are the Sellmeier coefficients specific to the material.</p>
 <span class="normal">308</span>
 <span class="normal">309</span>
 <span class="normal">310</span>
-<span class="normal">311</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">refractive_index</span><span class="p">(</span>
+<span class="normal">311</span>
+<span class="normal">312</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">refractive_index</span><span class="p">(</span>
     <span class="n">sellmeier</span><span class="p">:</span> <span class="n">SellmeierCoefficients</span><span class="p">,</span>
     <span class="n">wavelength</span><span class="p">:</span> <span class="n">Wavelength</span><span class="p">,</span>
     <span class="n">temperature</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -2624,6 +2642,81 @@ etc. are the Sellmeier coefficients specific to the material.</p>
 
         <p>Enum to represent the orientation: ordinary or extraordinary.</p>
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="citrine.PhaseMatchingCondition" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">citrine.PhaseMatchingCondition</span>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="enum.Enum">Enum</span></code></p>
+
+
+        <p>Phase-matching configurations for nonlinear optical processes.</p>
+<p>Each configuration defines the polarization orientations for (pump, signal,
+    idler) where:</p>
+<pre><code>- o/O: ordinary polarization (horizontal, H)
+
+- e/E: extraordinary polarization (vertical, V)
+</code></pre>
+
+
+<details class="the-configurations-are" open>
+  <summary>The configurations are</summary>
+  <ul>
+<li>Type 0 (o): All waves ordinary polarized (H,H,H), <code>type0_o</code></li>
+<li>Type 0 (e): All waves extraordinary polarized (V,V,V), <code>type0_e</code></li>
+<li>Type 1: Pump extraordinary, signal/idler ordinary (V,H,H), <code>type1</code></li>
+<li>Type 2 (o): Mixed polarizations (V,H,V), <code>type2_o</code></li>
+<li>Type 2 (e): Mixed polarizations (V,V,H), <code>type2_e</code></li>
+</ul>
+</details>
+
+<details class="note" open>
+  <summary>Note</summary>
+  <ul>
+<li>Ordinary (o) corresponds to horizontal (H) polarization</li>
+<li>Extraordinary (e) corresponds to vertical (V) polarization</li>
+<li>The tuple order is always (pump, signal, idler)</li>
+</ul>
+</details>
 
 
 
@@ -2776,7 +2869,7 @@ etc. are the Sellmeier coefficients specific to the material.</p>
         </li>
         <li class="doc-section-item field-body">
           <b><code><span title="citrine.Crystal.__init__.phase_matching">phase_matching</span></code></b>
-              (<code><span title="citrine.citrine.PhaseMatchingCondition">PhaseMatchingCondition</span></code>)
+              (<code><a class="autorefs autorefs-internal" title="            citrine.PhaseMatchingCondition (citrine.citrine.PhaseMatchingCondition)" href="#citrine.PhaseMatchingCondition">PhaseMatchingCondition</a></code>)
           –
           <div class="doc-md-description">
             <p>Phase matching conditions.</p>
@@ -2849,7 +2942,7 @@ etc. are the Sellmeier coefficients specific to the material.</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="citrine.citrine.PhaseMatchingCondition">PhaseMatchingCondition</span></code>
+              <code><a class="autorefs autorefs-internal" title="            citrine.PhaseMatchingCondition (citrine.citrine.PhaseMatchingCondition)" href="#citrine.PhaseMatchingCondition">PhaseMatchingCondition</a></code>
           –
           <div class="doc-md-description">
             <p>Current phase matching configuration.</p>
@@ -3471,7 +3564,7 @@ etc. are the Sellmeier coefficients specific to the material.</p>
   </span>
 
 </h2>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">Time</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">floating</span><span class="p">]],</span> <span class="n">unit</span><span class="p">:</span> <span class="n">Magnitude</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">Time</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">ndarray</span><span class="p">],</span> <span class="n">unit</span><span class="p">:</span> <span class="n">Magnitude</span> <span class="o">=</span> <span class="n">Magnitude</span><span class="o">.</span><span class="n">base</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents first">
@@ -3692,7 +3785,7 @@ etc. are the Sellmeier coefficients specific to the material.</p>
 
 
 </h2>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">hom_interference_from_jsa</span><span class="p">(</span><span class="n">joint_spectral_amplitude</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">wavelengths_signal</span><span class="p">:</span> <span class="n">Wavelength</span><span class="p">,</span> <span class="n">wavelengths_idler</span><span class="p">:</span> <span class="n">Wavelength</span><span class="p">,</span> <span class="n">time_delay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">bunching</span><span class="p">:</span> <span class="n">Bunching</span> <span class="o">=</span> <span class="n">Bunching</span><span class="o">.</span><span class="n">Bunching</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">hom_interference_from_jsa</span><span class="p">(</span><span class="n">joint_spectral_amplitude</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">wavelengths_signal</span><span class="p">:</span> <span class="n">Wavelength</span><span class="p">,</span> <span class="n">wavelengths_idler</span><span class="p">:</span> <span class="n">Wavelength</span><span class="p">,</span> <span class="n">time_delay</span><span class="p">:</span> <span class="n">Time</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">Magnitude</span><span class="o">.</span><span class="n">base</span><span class="p">),</span> <span class="n">bunching</span><span class="p">:</span> <span class="n">Bunching</span> <span class="o">=</span> <span class="n">Bunching</span><span class="o">.</span><span class="n">Bunching</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span>
 </code></pre></div>
 
     <div class="doc doc-contents first">
@@ -3756,7 +3849,12 @@ meters, must match the second dimension of jsa. Note: should be in
         <li class="doc-section-item field-body">
             <b><code>time_delay</code></b>
               (<code>float = 0.0</code>, default:
-                  <code>0.0</code>
+                  <code><a class="autorefs autorefs-internal" title="            citrine.Time
+
+
+  
+      dataclass
+   (citrine.citrine.Time)" href="#citrine.Time">Time</a>(0.0, <span title="citrine.citrine.Magnitude.base">base</span>)</code>
 )
           –
           <div class="doc-md-description">
@@ -3818,7 +3916,7 @@ simulated</p>
 
 
 </h2>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">hong_ou_mandel_interference</span><span class="p">(</span><span class="n">jsa</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">signal_wavelengths</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">idler_wavelengths</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">time_delays</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">bunching</span><span class="p">:</span> <span class="n">Bunching</span> <span class="o">=</span> <span class="n">Bunching</span><span class="o">.</span><span class="n">Bunching</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">hong_ou_mandel_interference</span><span class="p">(</span><span class="n">jsa</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">signal_wavelengths</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">idler_wavelengths</span><span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">time_delays</span><span class="p">:</span> <span class="n">Time</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">Magnitude</span><span class="o">.</span><span class="n">base</span><span class="p">),</span> <span class="n">bunching</span><span class="p">:</span> <span class="n">Bunching</span> <span class="o">=</span> <span class="n">Bunching</span><span class="o">.</span><span class="n">Bunching</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
 </code></pre></div>
 
     <div class="doc doc-contents first">
@@ -3856,7 +3954,19 @@ simulated</p>
         </li>
         <li class="doc-section-item field-body">
             <b><code>time_delays</code></b>
-              (<code><span title="numpy.ndarray">ndarray</span></code>)
+              (<code><a class="autorefs autorefs-internal" title="            citrine.Time
+
+
+  
+      dataclass
+   (citrine.citrine.Time)" href="#citrine.Time">Time</a></code>, default:
+                  <code><a class="autorefs autorefs-internal" title="            citrine.Time
+
+
+  
+      dataclass
+   (citrine.citrine.Time)" href="#citrine.Time">Time</a>(0.0, <span title="citrine.citrine.Magnitude.base">base</span>)</code>
+)
           –
           <div class="doc-md-description">
             <p>1D array of time delay values in seconds to scan across.</p>
