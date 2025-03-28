@@ -62,6 +62,12 @@
         show_root_heading: true
         show_source: false
 
+:::citrine.PhaseMatchingCondition
+    options:
+        allow_inspection: true
+        show_root_heading: true
+        show_source: true
+
 :::citrine.Crystal
     options:
         allow_inspection: false

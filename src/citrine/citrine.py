@@ -16,6 +16,7 @@ __all__ = [
     '_n_i',
     'refractive_index',
     'Orientation',
+    'PhaseMatchingCondition',
     'Photon',
     'Crystal',
     'calculate_grating_period',
@@ -321,17 +322,19 @@ class Orientation(Enum):
 class PhaseMatchingCondition(Enum):
     """Phase-matching configurations for nonlinear optical processes.
 
-    Each configuration defines the polarization orientations for (pump, signal, idler)
-    where:
+    Each configuration defines the polarization orientations for (pump, signal,
+        idler) where:
+
         - o/O: ordinary polarization (horizontal, H)
+
         - e/E: extraordinary polarization (vertical, V)
 
     The configurations are:
-        Type 0 (o): All waves ordinary polarized (H,H,H)
-        Type 0 (e): All waves extraordinary polarized (V,V,V)
-        Type 1: Pump extraordinary, signal/idler ordinary (V,H,H)
-        Type 2 (o): Mixed polarizations (V,H,V)
-        Type 2 (e): Mixed polarizations (V,V,H)
+        - Type 0 (o): All waves ordinary polarized (H,H,H), `type0_o`
+        - Type 0 (e): All waves extraordinary polarized (V,V,V), `type0_e`
+        - Type 1: Pump extraordinary, signal/idler ordinary (V,H,H), `type1`
+        - Type 2 (o): Mixed polarizations (V,H,V), `type2_o`
+        - Type 2 (e): Mixed polarizations (V,V,H), `type2_e`
 
     Note:
         - Ordinary (o) corresponds to horizontal (H) polarization
@@ -756,8 +759,8 @@ class Time:
 
     """
 
-    value: Union[float, NDArray[np.floating]]
-    unit: Magnitude
+    value: Union[float, np.ndarray]
+    unit: Magnitude = Magnitude.base
 
     def count(self) -> int:
         n: int = 1
@@ -797,7 +800,7 @@ class Time:
         Returns:
             Time: Time in seconds.
         """
-        return Time(self.as_array() * (10**self.unit.value), Magnitude.base)
+        return Time(self.value * (10**self.unit.value), Magnitude.base)
 
 
 class Bunching(Enum):
@@ -809,7 +812,7 @@ def hom_interference_from_jsa(
     joint_spectral_amplitude: np.ndarray,
     wavelengths_signal: Wavelength,
     wavelengths_idler: Wavelength,
-    time_delay: float = 0.0,
+    time_delay: Time = Time(0.0, Magnitude.base),
     bunching: Bunching = Bunching.Bunching,
 ) -> Tuple[float, np.ndarray]:
     """Calculates the Hong-Ou-Mandel (HOM) interference pattern and total
@@ -883,7 +886,9 @@ def hom_interference_from_jsa(
     # Calculate phase shift from time delay
     # The factor 2π·c·(1/λ_s - 1/λ_i)·Δt represents the phase accumulated due
     #   to the different arrival times of different wavelength components
-    phase = 2 * np.pi * c * frequency_difference * time_delay
+    phase = (
+        2 * np.pi * c * frequency_difference * time_delay.to_absolute().value
+    )
 
     phase_factor = np.cos(phase) + 1j * np.sin(phase)
 
@@ -918,7 +923,7 @@ def hong_ou_mandel_interference(
     jsa: np.ndarray,
     signal_wavelengths: np.ndarray,
     idler_wavelengths: np.ndarray,
-    time_delays: np.ndarray,
+    time_delays: Time = Time(0.0, Magnitude.base),
     bunching: Bunching = Bunching.Bunching,
 ) -> np.ndarray:
     """Calculates the complete Hong-Ou-Mandel dip by scanning the time delays.
@@ -946,15 +951,15 @@ def hong_ou_mandel_interference(
         spectral entanglement and distinguishability of the photon pairs.
     """
     # Initialize array to store coincidence rates
-    coincidence_rates = np.zeros(len(time_delays))
+    coincidence_rates = np.zeros(len(time_delays.value))
 
     # Calculate rate for each time delay
-    for i, delay in enumerate(time_delays):
+    for i, delay in enumerate(time_delays.value):
         rate, _ = hom_interference_from_jsa(
             jsa,
             signal_wavelengths,
             idler_wavelengths,
-            delay,
+            Time(delay, time_delays.unit),
             bunching,
         )
         coincidence_rates[i] = rate
