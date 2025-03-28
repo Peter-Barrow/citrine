@@ -8,11 +8,15 @@ authors = [
 readme = "README.md"
 dependencies = [
     "numpy",
- "scipy",
- "matplotlib",
- "seaborn",
- "tqdm",
- "numba>=0.60.0",
+    "scipy",
+    "matplotlib",
+    "seaborn",
+    "tqdm",
+    "numba>=0.60.0",
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.6.9",
+    "mkdocstrings[python]>=0.29.0",
+    "mkdocs-jupyter>=0.25.1",
 ]
 license = {file = "LICENSE"}
 

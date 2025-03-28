@@ -16,19 +16,23 @@ __all__ = [
     '_n_i',
     'refractive_index',
     'Orientation',
+    'Photon',
     'Crystal',
     'calculate_grating_period',
     'delta_k_matrix',
     'phase_matching_function',
+    'phase_mismatch',
     'joint_spectral_amplitude',
+    'PhotonType',
+    'calculate_marginal_spectrum',
+    'calculate_jsa_marginals',
     'bandwidth_conversion',
     'Time',
+    'Bunching',
+    'hom_interference_from_jsa',
     'hong_ou_mandel_interference',
-    'calculate_jsa_marginals',
+    'spectral_purity',
     'wavelength_temperature_tuning',
-    'phase_mismatch',
-    'PhaseMatchingCondition',
-    'Photon',
 ]
 
 
@@ -186,7 +190,9 @@ def _permittivity(
 
     The equation typically takes the form:
 
-    n^2 = A + (B * λ^2 / (λ^2 - C)) + (D * λ^2 / (λ^2 - E)) + ...
+    $$
+    n^2 = A + \\frac{B * λ^2}{λ^2 - C} + \\frac{D * λ^2}{λ^2 - E} + \\ldots
+    $$
 
     Where n is the refractive index, λ is the wavelength, and A, B, C, D, E,
     etc. are the Sellmeier coefficients specific to the material.
@@ -925,7 +931,6 @@ def hong_ou_mandel_interference(
         signal_wavelengths: 1D array of signal wavelengths in meters.
         idler_wavelengths: 1D array of idler wavelengths in meters.
         time_delays: 1D array of time delay values in seconds to scan across.
-        speed_of_light: Speed of light in m/s, defaulting to value in vacuum.
 
     Returns:
         np.ndarray: 1D array of coincidence rates corresponding to each time

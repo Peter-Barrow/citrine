@@ -2,6 +2,12 @@ import numpy as np
 from scipy.special import erf
 from .citrine import Wavelength
 
+__all__ = [
+    'gaussian',
+    'sech2',
+    'skewed_gaussian',
+]
+
 
 def gaussian(
     lambda_p: Wavelength,
