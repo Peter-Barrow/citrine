@@ -20,6 +20,7 @@ __all__ = [
     'calculate_grating_period',
     'delta_k_matrix',
     'phase_matching_function',
+    'joint_spectral_amplitude',
     'bandwidth_conversion',
     'Time',
     'hong_ou_mandel_interference',
@@ -27,6 +28,7 @@ __all__ = [
     'wavelength_temperature_tuning',
     'phase_mismatch',
     'PhaseMatchingCondition',
+    'Photon',
 ]
 
 
@@ -622,6 +624,21 @@ def phase_matching_function(
     return np.sinc(x)
 
 
+def joint_spectral_amplitude(
+    phase_mismatch_matrix: np.ndarray,
+    pump_envelope_matrix: np.ndarray,
+    normalisation: bool = True,
+) -> np.ndarray:
+    jsa_raw = pump_envelope_matrix * phase_mismatch_matrix
+
+    norm = 1
+    if normalisation:
+        norm = np.sqrt(np.sum(np.abs(jsa_raw) ** 2))
+
+    jsa = jsa_raw / norm
+    return jsa
+
+
 class PhotonType(Enum):
     IDLER = 0
     SIGNAL = 1
@@ -777,80 +794,202 @@ class Time:
         return Time(self.as_array() * (10**self.unit.value), Magnitude.base)
 
 
-def hong_ou_mandel_interference(
-    joint_spectral_amplitude,
-    lambda_s: Wavelength,
-    lambda_i: Wavelength,
-    delays: Time,
-) -> Tuple[NDArray, float, float, float]:
-    """Calculates Hong-Ou-Mandel interference between two single-photon spectra.
+class Bunching(Enum):
+    Bunching = -1
+    AntiBunching = 1
 
-    This function computes the Hong-Ou-Mandel (HOM) interference pattern and associated
-    quantum properties from a joint spectral amplitude (JSA). It performs singular value
-    decomposition (SVD) of the JSA and calculates interference probabilities for
-    different time delays.
+
+def hom_interference_from_jsa(
+    joint_spectral_amplitude: np.ndarray,
+    wavelengths_signal: Wavelength,
+    wavelengths_idler: Wavelength,
+    time_delay: float = 0.0,
+    bunching: Bunching = Bunching.Bunching,
+) -> Tuple[float, np.ndarray]:
+    """Calculates the Hong-Ou-Mandel (HOM) interference pattern and total
+        coincidence rate.
+
+    This function computes the quantum interference that occurs when two
+        photons enter a 50:50 beam splitter from different inputs. The
+        interference pattern depends on the joint spectral amplitude (JSA) of
+        the photon pair and the time delay between their arrivals at the beam
+        splitter.
+
+    The calculation follows these steps:
+    1. Create the second JSA with swapped signal and idler (anti-transpose)
+    2. Apply a phase shift based on the time delay and wavelength difference
+    3. Calculate the interference between the two quantum pathways
+    4. Compute the joint spectral intensity (JSI) by taking the squared
+        magnitude
 
     Args:
-        joint_spectral_amplitude: 2D array representing the joint spectral amplitude.
-        lambda_s: Signal wavelength array.
-        lambda_i: Idler wavelength array.
-        delays: Time delay array for interference calculation.
+        jsa (np.ndarray): Complex 2D numpy array of shape (M, N) representing
+            the Joint Spectral Amplitude. The first dimension corresponds to
+            signal wavelengths and the second dimension to idler wavelengths.
+        wavelengths_signal (Wavelength): 1D array of signal wavelengths in
+            meters, must match the first dimension of jsa.
+        wavelengths_idler (Wavelength): 1D array of idler wavelengths in
+            meters, must match the second dimension of jsa. Note: should be in
+                descending order to match standard convention.
+        time_delay (float = 0.0): Time delay between signal and idler photons
+            in seconds. At zero delay, maximum quantum interference occurs for
+            indistinguishable photons.
+        bunching (Bunching = Bunching.Bunching): Type of interference to be
+            simulated
+
+    Returns:
+        Tuple containing:
+            - float: Total coincidence probability (sum of all JSI values).
+            - np.ndarray: 2D array representing the joint spectral intensity
+                after interference.
+
+    Notes:
+        Hong-Ou-Mandel interference results from the destructive interference
+            between two indistinguishable two-photon quantum states. For
+            perfectly indistinguishable photons at zero time delay, they will
+            always exit the beam splitter together from the same port,
+            resulting in zero coincidence count rate (the HOM dip).
+
+        The time delay introduces a wavelength-dependent phase shift to one
+            pathway, reducing the interference and increasing the coincidence
+            probability.
+    """
+
+    # Verify inputs
+    check = joint_spectral_amplitude.shape != (
+        len(wavelengths_signal.value),
+        len(wavelengths_idler.value),
+    )
+
+    if check:
+        raise ValueError(
+            'Joint Spectral Amplitude dimensions must match wavelengths'
+        )
+
+    Signal, Idler = np.meshgrid(
+        1 / wavelengths_signal.to_absolute().value,
+        1 / wavelengths_idler.to_absolute().value,
+        indexing='ij',
+    )
+
+    frequency_difference = Signal - Idler
+
+    # Calculate phase shift from time delay
+    # The factor 2π·c·(1/λ_s - 1/λ_i)·Δt represents the phase accumulated due
+    #   to the different arrival times of different wavelength components
+    phase = 2 * np.pi * c * frequency_difference * time_delay
+
+    phase_factor = np.cos(phase) + 1j * np.sin(phase)
+
+    joint_spectral_amplitude_delayed = (
+        np.flipud(np.fliplr(joint_spectral_amplitude.T)) * phase_factor
+    )
+
+    # The choice of bunching or antibunching sets the type of interference
+    #   being simulated, positive corresponds to constructive interference
+    #   (bunching) and negative corresponds to destructive interference
+    #   (antibunching)
+    sign = float(bunching.value)
+
+    # Calculate the interference between the signal and idler photons
+    joint_spectral_amplitude_interference = (
+        joint_spectral_amplitude + (sign * joint_spectral_amplitude_delayed)
+    ) / 2
+
+    # Calculate Joint Spectral Intensity by taking squared magnitude of
+    # amplitude -> |JSA|² = |Re(JSA)|² + |Im(JSA)|²
+    joint_spectral_intensity = (
+        np.abs(joint_spectral_amplitude_interference) ** 2
+    )
+
+    # Calculate total coincidence probability (area under the JSI)
+    coincidence_probability = np.sum(joint_spectral_intensity)
+
+    return coincidence_probability, joint_spectral_intensity
+
+
+def hong_ou_mandel_interference(
+    jsa: np.ndarray,
+    signal_wavelengths: np.ndarray,
+    idler_wavelengths: np.ndarray,
+    time_delays: np.ndarray,
+    bunching: Bunching = Bunching.Bunching,
+) -> np.ndarray:
+    """Calculates the complete Hong-Ou-Mandel dip by scanning the time delays.
+
+    This function generates the characteristic HOM dip by calculating the
+        coincidence rate at each time delay value in the provided array.
+
+    Args:
+        jsa: Complex 2D numpy array representing the Joint Spectral Amplitude.
+        signal_wavelengths: 1D array of signal wavelengths in meters.
+        idler_wavelengths: 1D array of idler wavelengths in meters.
+        time_delays: 1D array of time delay values in seconds to scan across.
+        speed_of_light: Speed of light in m/s, defaulting to value in vacuum.
+
+    Returns:
+        np.ndarray: 1D array of coincidence rates corresponding to each time
+            delay, showing the characteristic HOM dip.
+
+    Physics Notes:
+        The width of the HOM dip is inversely proportional to the spectral
+            bandwidth of the photons. Spectrally narrower photons produce wider
+            dips, while broader bandwidth photons produce narrower dips,
+            demonstrating the time-frequency uncertainty principle.
+
+        The shape and visibility of the dip reveals information about the
+        spectral entanglement and distinguishability of the photon pairs.
+    """
+    # Initialize array to store coincidence rates
+    coincidence_rates = np.zeros(len(time_delays))
+
+    # Calculate rate for each time delay
+    for i, delay in enumerate(time_delays):
+        rate, _ = hom_interference_from_jsa(
+            jsa,
+            signal_wavelengths,
+            idler_wavelengths,
+            delay,
+            bunching,
+        )
+        coincidence_rates[i] = rate
+
+    return coincidence_rates
+
+
+def spectral_purity(jsa: np.ndarray) -> Tuple[float, float, float]:
+    """Calculate the spectral purity of a biphoton state
+
+    This function calculate the spectral purity, schmidt number and entropy of
+        a biphoton state. This is achieved by performing a singular value
+        decomposition (SVD) a discrete analogue to the Schmidt decomposition
+        (continuous space).
+
+    Args:
+        joint_spectral_amplitude: 2D array representing the joint spectral
+            amplitude.
 
     Returns:
         tuple: A tuple containing:
             - probabilities (NDArray): Normalized HOM interference pattern
             - purity (float): Spectral purity of the state (0 to 1)
-            - schmidt_number (float): Schmidt number indicating mode entanglement
-            - entropy (float): von Neumann entropy of the quantum state
+            - schmidt_number (float): Schmidt number indicating mode
+                entanglement
 
     Notes:
         The function performs these steps:
         1. SVD decomposition of the JSA
-        2. Calculates interference pattern for each delay
-        3. Normalizes probabilities to [0, 0.5] range
-        4. Computes quantum metrics (purity, Schmidt number, entropy)
+        2. Computes quantum metrics (purity, Schmidt number, entropy)
 
-        The HOM dip depth is related to the spectral purity, with
-        perfect interference giving a dip to zero at zero delay for
-        pure states.
     """
-
-    u, d, v = np.linalg.svd(joint_spectral_amplitude)
-    d_diag = np.diag(d)
-    u_conj = np.conj(u)
-
-    probabilities: NDArray[np.floating] = np.zeros(
-        delays.count(), dtype=np.float64
-    )
-
-    freq_s = lambda_s.as_angular_frequency().value
-    freq_i = lambda_i.as_angular_frequency().value
-
-    delays_absolute = delays.to_absolute().as_array()
-
-    for i, tau in enumerate(delays_absolute):
-        intereference_s = np.dot(v * np.exp(-1j * freq_s * tau), u_conj)
-
-        intereference_i = np.dot(
-            u.T,
-            np.conj(v * np.exp(-1j * freq_i * tau)).T,
-        )
-
-        interference = intereference_s * intereference_i
-        interference = np.dot(d_diag, np.dot(interference, d_diag))
-
-        probabilities[i] = np.abs(interference.sum())
-
-    probabilities = probabilities / probabilities.max()
-
-    probabilities = 0.5 - (0.5 * probabilities)
-
+    _, d, _ = np.linalg.svd(jsa)
     d = d / np.sqrt(np.sum(d * np.conj(d)))
     purity = np.sum((d * np.conj(d)) ** 2)
+
     schmidt_number = 1 / np.sum(d**4)
     entropy = -np.sum((d**2) * np.log2(d**2))
 
-    return probabilities, purity, schmidt_number, entropy
+    return purity, schmidt_number, entropy
 
 
 def _apodisation_amplitude(

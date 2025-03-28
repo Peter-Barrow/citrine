@@ -18,7 +18,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "matplotlib" },
-    { name = "numba" },
+    { name = "numba", specifier = ">=0.60.0" },
     { name = "numpy" },
     { name = "scipy" },
     { name = "seaborn" },
