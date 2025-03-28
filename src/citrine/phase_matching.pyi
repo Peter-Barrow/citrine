@@ -1,0 +1,6 @@
+import numpy as np
+
+__all__ = ['pmf_gaussian', 'pmf_antisymmetric']
+
+def pmf_gaussian(delta_k: np.ndarray, poling_period, crystal_length) -> np.ndarray: ...
+def pmf_antisymmetric(delta_k: np.ndarray, poling_period, crystal_length) -> np.ndarray: ...

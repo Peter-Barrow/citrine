@@ -42,7 +42,9 @@ c = 299792458  # Speed of light in m/s
 
 
 class Magnitude(Enum):
-    """Enum to define the magnitude prefixes for units such as pico, nano, micro, etc."""
+    """Enum to define the magnitude prefixes for units such as pico, nano,
+    micro, etc.
+    """
 
     pico = -12
     nano = -9
@@ -106,7 +108,8 @@ class Wavelength:
         Convert the wavelength to angular frequency.
 
         Returns:
-            AngularFrequency: Angular frequency corresponding to the wavelength.
+            AngularFrequency: Angular frequency corresponding to the
+                wavelength.
         """
         return AngularFrequency((2 * np.pi * c) / self.to_absolute().value)
 
@@ -165,10 +168,14 @@ class SellmeierCoefficients:
     Sellmeier coefficients for calculating refractive indices.
 
     Attributes:
-        zeroth_order (Union[List[float], NDArray]): Zeroth-order Sellmeier coefficients.
-        first_order (Union[List[float], NDArray]): First-order Sellmeier coefficients.
-        second_order (Union[List[float], NDArray]): Second-order Sellmeier coefficients.
-        temperature (float): The reference temperature for the coefficients (in Celsius).
+        zeroth_order (Union[List[float], NDArray]): Zeroth-order Sellmeier
+            coefficients.
+        first_order (Union[List[float], NDArray]): First-order Sellmeier
+            coefficients.
+        second_order (Union[List[float], NDArray]): Second-order Sellmeier
+            coefficients.
+        temperature (float): The reference temperature for the coefficients
+            (in Celsius).
     """
 
     first_order: Optional[Union[List[float], NDArray]]
@@ -236,10 +243,12 @@ def _n_0(
     wavelength_um: Union[float, NDArray[np.floating]],
 ) -> Union[float, NDArray[np.floating]]:
     """
-    Calculate the refractive index (n_0) using the zeroth-order Sellmeier coefficients.
+    Calculate the refractive index (n_0) using the zeroth-order Sellmeier
+        coefficients.
 
     Args:
-        sellmeier (Union[List[float], NDArray]): Zeroth-order Sellmeier coefficients.
+        sellmeier (Union[List[float], NDArray]): Zeroth-order Sellmeier
+            coefficients.
         wavelength_um (float): Wavelength in micrometers.
 
     Returns:
@@ -253,10 +262,12 @@ def _n_i(
     wavelength_um: Union[float, NDArray[np.floating]],
 ) -> Union[float, NDArray[np.floating]]:
     """
-    Calculate the refractive index (n_i) using the higher-order Sellmeier coefficients.
+    Calculate the refractive index (n_i) using the higher-order Sellmeier
+        coefficients.
 
     Args:
-        sellmeier (Union[List[float], NDArray]): Higher-order Sellmeier coefficients.
+        sellmeier (Union[List[float], NDArray]): Higher-order Sellmeier
+            coefficients.
         wavelength_um (float): Wavelength in micrometers.
 
     Returns:
@@ -274,12 +285,16 @@ def refractive_index(
     temperature: Optional[float] = None,
 ) -> Union[float, NDArray[np.floating]]:
     """
-    Calculate the refractive index for a given wavelength and temperature using the Sellmeier equation.
+    Calculate the refractive index for a given wavelength and temperature using
+        the Sellmeier equation.
 
     Args:
-        sellmeier (SellmeierCoefficients): The Sellmeier coefficients for the material.
-        wavelength (Wavelength): The wavelength at which to calculate the refractive index.
-        temperature (Optional[float]): The temperature (in Celsius), defaults to the reference temperature.
+        sellmeier (SellmeierCoefficients): The Sellmeier coefficients for the
+            material.
+        wavelength (Wavelength): The wavelength at which to calculate the
+            refractive index.
+        temperature (Optional[float]): The temperature (in Celsius), defaults
+            to the reference temperature.
 
     Returns:
         float: The refractive index at the given wavelength and temperature.
@@ -381,16 +396,19 @@ class Crystal:
         name: str,
         sellmeier_o: SellmeierCoefficients,
         sellmeier_e: SellmeierCoefficients,
-        phase_matching: PhaseMatchingCondition = PhaseMatchingCondition.type0_e,
+        phase_matching: PhaseMatchingCondition,
         doi: str = None,
     ):
         """
-        Class to represent a nonlinear crystal for refractive index and phase matching calculations.
+        Class to represent a nonlinear crystal for refractive index and phase
+            matching calculations.
 
         Attributes:
             name (str): Name of the crystal.
-            sellmeier_o (SellmeierCoefficients): Ordinary Sellmeier coefficients.
-            sellmeier_e (SellmeierCoefficients): Extraordinary Sellmeier coefficients.
+            sellmeier_o (SellmeierCoefficients): Ordinary Sellmeier
+                coefficients.
+            sellmeier_e (SellmeierCoefficients): Extraordinary Sellmeier
+                coefficients.
             phase_matching (PhaseMatchingCondition): Phase matching conditions.
         """
         self.name = name
@@ -420,14 +438,16 @@ class Crystal:
         """
         if not isinstance(condition, PhaseMatchingCondition):
             raise ValueError(
-                f'Phase matching condition must be a PhaseMatchingCondition, not {type(condition)}'
+                'Phase matching condition must be a PhaseMatchingCondition,'
+                + f' not {type(condition)}'
             )
         self._phase_matching = condition
 
     def _sellmeier(self, polarisation: Orientation) -> SellmeierCoefficients:
         if not isinstance(polarisation, Orientation):
             raise ValueError(
-                f'Polarisation must be an Orientation, not {type(polarisation)}'
+                'Polarisation must be an Orientation'
+                + f', not {type(polarisation)}'
             )
         if polarisation == Orientation.ordinary:
             return self.sellmeier_o
@@ -440,12 +460,14 @@ class Crystal:
         temperature: Optional[float] = None,
     ) -> Union[float, NDArray[np.floating]]:
         """
-        Calculate the refractive index for a given wavelength and polarization using the Sellmeier equation.
+        Calculate the refractive index for a given wavelength and polarization
+            using the Sellmeier equation.
 
         Args:
             wavelength (Wavelength): Wavelength.
             photon (Photon): Photon type.
-            temperature (Optional[float]): Temperature in Celsius (defaults to reference temperature).
+            temperature (Optional[float]): Temperature in Celsius (defaults to
+                reference temperature).
 
         Returns:
             float: Refractive index.
@@ -466,19 +488,23 @@ class Crystal:
         Union[float, NDArray[np.floating]],
     ]:
         """
-        Calculate the refractive indices for the pump, signal, and idler photons.
+        Calculate the refractive indices for the pump, signal, and idler
+            photons.
 
         Args:
             pump_wavelength (Wavelength): Pump photon wavelength.
             signal_wavelength (Wavelength): Signal photon wavelength.
             idler_wavelength (Wavelength): Idler photon wavelength.
-            temperature (Optional[float]): Temperature in Celsius (defaults to reference temperature).
+            temperature (Optional[float]): Temperature in Celsius (defaults to
+                reference temperature).
 
         Returns:
-            Tuple[float, float, float]: Refractive indices for the pump, signal, and idler photons.
+            Tuple[float, float, float]: Refractive indices for the pump,
+                signal, and idler photons.
         """
 
-        # TODO: refactor, there should be a convenient way to remove the "if" check on each call self.refractive_index
+        # TODO: refactor, there should be a convenient way to remove the "if"
+        #   check on each call self.refractive_index
 
         n_pump = self.refractive_index(
             pump_wavelength, Photon.pump, temperature
@@ -537,7 +563,8 @@ def delta_k_matrix(
     temperature: float = None,
 ) -> Union[float, NDArray[np.floating]]:
     """
-    Calculate the Δk matrix for the phase matching function using the wavevector.
+    Calculate the Δk matrix for the phase matching function using the
+        wavevector
 
     Args:
         lambda_p (Wavelength): Central wavelength of the pump.
@@ -660,14 +687,16 @@ def calculate_marginal_spectrum(
     photon_type: PhotonType,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Calculate the marginal spectrum for either signal or idler photons from a JSA matrix.
+    Calculate the marginal spectrum for either signal or idler photons from a
+        JSA matrix.
 
     Args:
-        jsa_matrix: A 2D complex matrix representing the joint spectral amplitude.
-                   Shape (len(lambda_s), len(lambda_i)) with indexing='ij'.
+        jsa_matrix: A 2D complex matrix representing the joint spectral
+            amplitude. Shape (len(lambda_s), len(lambda_i)) with indexing='ij'.
         lambda_s: Signal wavelengths (Wavelength type).
         lambda_i: Idler wavelengths (Wavelength type).
-        photon_type: Enum specifying whether to calculate for SIGNAL or IDLER photon.
+        photon_type: Enum specifying whether to calculate for SIGNAL or IDLER
+            photon.
 
     Returns:
         Tuple containing:
@@ -696,8 +725,8 @@ def calculate_jsa_marginals(
     Calculate both signal and idler marginal spectra from a JSA matrix.
 
     Args:
-        jsa_matrix: A 2D complex matrix representing the joint spectral amplitude.
-                   Shape (len(lambda_s), len(lambda_i)) with indexing='ij'.
+        jsa_matrix: A 2D complex matrix representing the joint spectral
+            amplitude. Shape (len(lambda_s), len(lambda_i)) with indexing='ij'.
         lambda_s: Signal wavelengths (Wavelength type).
         lambda_i: Idler wavelengths (Wavelength type).
 
@@ -816,7 +845,7 @@ def hom_interference_from_jsa(
     bunching: Bunching = Bunching.Bunching,
 ) -> Tuple[float, np.ndarray]:
     """Calculates the Hong-Ou-Mandel (HOM) interference pattern and total
-        coincidence rate.
+        coincidence rate
 
     This function computes the quantum interference that occurs when two
         photons enter a 50:50 beam splitter from different inputs. The
@@ -1095,10 +1124,13 @@ def wavelength_temperature_tuning(
     temp_range: tuple,  # Temperature range to evaluate (°C)
     num_points: int = 50,  # Number of calculation points
 ) -> tuple:
-    """Calculate wavelength tuning curves as a function of temperature for a nonlinear crystal.
+    """Calculate wavelength tuning curves as a function of temperature for a
+        nonlinear crystal.
 
-    This function calculates how the signal and idler wavelengths vary with temperature
-    in a quasi-phase-matched nonlinear crystal. It uses the phase-matching condition:
+    This function calculates how the signal and idler wavelengths vary with
+        temperature
+    in a quasi-phase-matched nonlinear crystal. It uses the phase-matching
+        condition:
     $$ \\Delta k = k_p - k_s - k_i - k_g = 0 $$
     where $k_p$, $k_s$, $k_i$ are the wave vectors for pump, signal, and idler,
     and $k_g$ is the grating vector from the crystal's poling period.
@@ -1108,22 +1140,25 @@ def wavelength_temperature_tuning(
         lambda_s: Initial signal wavelength object.
         lambda_i: Initial idler wavelength object.
         poling_period: Crystal poling period in micrometers.
-        crystal: Crystal object containing material properties and orientations.
-        temp_range: Tuple of (min_temperature, max_temperature) in degrees Celsius.
+        crystal: Crystal object containing material properties and orientations
+        temp_range: Tuple of (min_temperature, max_temperature) in Celsius.
         num_points: Number of temperature points to evaluate (default: 50).
 
     Returns:
         tuple: A tuple containing:
-            - temperature array (ndarray): Temperature points in degrees Celsius
+            - temperature array (ndarray): Temperature points in Celsius
             - signal_wavelengths (ndarray): Calculated signal wavelengths
             - idler_wavelengths (ndarray): Calculated idler wavelengths
 
     Notes:
-        The function solves the phase-matching equation at each temperature point
-        to find the signal and idler wavelengths that satisfy energy conservation:
-        $$ \\frac{1}{\\lambda_p} = \\frac{1}{\\lambda_s} + \\frac{1}{\\lambda_i} $$
-        If no solution is found at a particular temperature, NaN values are returned
-        for that point.
+        The function solves the phase-matching equation at each temperature
+            point to find the signal and idler wavelengths that satisfy energy
+            conservation:
+        $$
+        \\frac{1}{\\lambda_p} = \\frac{1}{\\lambda_s} + \\frac{1}{\\lambda_i}
+        $$
+        If no solution is found at a particular temperature, NaN values are
+            returned for that point.
     """
     wl_p = lambda_p.to_absolute().value
     wl_s = lambda_s.to_absolute().value

@@ -1,9 +1,8 @@
-from .citrine import Crystal as Crystal, Orientation as Orientation, SellmeierCoefficients as SellmeierCoefficients
+from .citrine import Crystal as Crystal, PhaseMatchingCondition as PhaseMatchingCondition, SellmeierCoefficients as SellmeierCoefficients
 from _typeshed import Incomplete
 
-sellmeier_e_ppKTP: Incomplete
-sellmeier_o_ppKTP: Incomplete
-ppKTP: Incomplete
-sellmeier_e_KTPrifr: Incomplete
-sellmeier_o_KTPrifr: Incomplete
-KTPrifr: Incomplete
+KTiOPO4_Fradkin: Incomplete
+KTiOPO4_Emanueli: Incomplete
+KTiOAsO4_Emanueli: Incomplete
+LiNbO3_Zelmon: Incomplete
+LiNbO3_5molMgO_Zelmon: Incomplete

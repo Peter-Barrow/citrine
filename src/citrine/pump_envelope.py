@@ -217,12 +217,13 @@ def asymmetric_chirped(
         lambda_i: Idler wavelengths array.
         k: Chirp parameter, controls strength and direction of chirp.
            Positive values create up-chirp, negative values create down-chirp.
-        tail_strength: Controls the prominence of the spectral tail (default 2.5).
-           Positive for tail on lower frequency side, negative for higher frequency side.
+        tail_strength: Controls the prominence of the spectral tail (default
+            2.5). Positive for tail on lower frequency side, negative for
+            higher frequency side.
         cutoff_steepness: Controls how sharp the cutoff edge is (default 25).
            Higher values create a sharper cutoff.
-        edge_asymmetry: Controls the position of the sharp edge relative to center (default 0.5).
-           Values from 0 to 1, with 0.5 being centered.
+        edge_asymmetry: Controls the position of the sharp edge relative to
+            center (default 0.5). Values from 0 to 1, with 0.5 being centered.
 
     Returns:
         A 2D complex-valued pump envelope matrix.
@@ -313,16 +314,20 @@ def skewed_gaussian(
         lambda_s: Signal wavelengths array.
         lambda_i: Idler wavelengths array.
         alpha: Skewness parameter (default 3.0).
-               Positive values skew toward lower frequencies (longer wavelengths),
-               negative values skew toward higher frequencies (shorter wavelengths).
+               Positive values skew toward lower frequencies (longer
+               wavelengths),
+               negative values skew toward higher frequencies (shorter
+               wavelengths).
         k: Chirp parameter, controls strength and direction of
-            chirp. Positive values create up-chirp, negative values create down-chirp.
+            chirp. Positive values create up-chirp, negative values create
+            down-chirp.
 
     Returns:
         A 2D pump envelope matrix.
 
     Notes:
-        The skewed Gaussian combines a standard Gaussian with the error function (erf)
+        The skewed Gaussian combines a standard Gaussian with the error
+            function (erf)
         to create asymmetry while maintaining smoothness.
     """
     # Create meshgrid for signal and idler wavelengths
