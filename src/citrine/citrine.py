@@ -3,7 +3,6 @@ from enum import Enum
 from typing import Union, List, Optional, Tuple, Callable
 import numpy as np
 from numpy.typing import NDArray
-from scipy.optimize import root
 
 __all__ = [
     'Magnitude',
@@ -33,6 +32,7 @@ __all__ = [
     'hom_interference_from_jsa',
     'hong_ou_mandel_interference',
     'spectral_purity',
+    'sibling_wavelength',
     'wavelength_temperature_tuning',
 ]
 
@@ -1115,14 +1115,35 @@ def apodisation(
     return (domain_lengths, orientation)
 
 
+def sibling_wavelength(pump: Wavelength, target: Wavelength) -> Wavelength:
+    inv_pump = 1 / pump.to_absolute().value
+    inv_target = 1 / target.to_absolute().value
+    wl_sibling = 1 / (inv_pump - inv_target)
+    return Wavelength(wl_sibling, Magnitude.base).to_unit(target.unit)
+
+
+def expansion(
+    temperature: float,
+    alpha: float = 6.7e-6,
+    beta: float = 11e-9,
+) -> float:
+    return 1 + (alpha * (temperature - 25)) + (beta * (temperature - 25))
+
+
+def _central_wavelength(wavelengths, intensity) -> float:
+    return np.mean(
+        wavelengths[np.where(intensity >= (np.max(intensity) / 2))[0]]
+    )
+
+
 def wavelength_temperature_tuning(
-    lambda_p: Wavelength,  # Pump wavelength (nm)
-    lambda_s: Wavelength,  # Pump wavelength (nm)
-    lambda_i: Wavelength,  # Pump wavelength (nm)
+    wavelength_pump: Wavelength,  # Pump wavelength (nm)
+    wavelength_target: Wavelength,  # Pump wavelength (nm)
     poling_period: float,  # Crystal poling period (μm)
     crystal: Crystal,
     temp_range: tuple,  # Temperature range to evaluate (°C)
     num_points: int = 50,  # Number of calculation points
+    crystal_length: float = 10e-3,
 ) -> tuple:
     """Calculate wavelength tuning curves as a function of temperature for a
         nonlinear crystal.
@@ -1136,9 +1157,8 @@ def wavelength_temperature_tuning(
     and $k_g$ is the grating vector from the crystal's poling period.
 
     Args:
-        lambda_p: Pump wavelength object.
-        lambda_s: Initial signal wavelength object.
-        lambda_i: Initial idler wavelength object.
+        wavelength_pump: Pump wavelength.
+        wavelengths_idler: Initial target wavelengths.
         poling_period: Crystal poling period in micrometers.
         crystal: Crystal object containing material properties and orientations
         temp_range: Tuple of (min_temperature, max_temperature) in Celsius.
@@ -1147,66 +1167,90 @@ def wavelength_temperature_tuning(
     Returns:
         tuple: A tuple containing:
             - temperature array (ndarray): Temperature points in Celsius
-            - signal_wavelengths (ndarray): Calculated signal wavelengths
-            - idler_wavelengths (ndarray): Calculated idler wavelengths
+            - central_wavelength_signal (ndarray): Calculated signal
+                wavelengths
+            - central_wavelength_idler (ndarray): Calculated idler wavelengths
+            - tuning_map (ndarray): ...
 
-    Notes:
-        The function solves the phase-matching equation at each temperature
-            point to find the signal and idler wavelengths that satisfy energy
-            conservation:
-        $$
-        \\frac{1}{\\lambda_p} = \\frac{1}{\\lambda_s} + \\frac{1}{\\lambda_i}
-        $$
-        If no solution is found at a particular temperature, NaN values are
-            returned for that point.
     """
-    wl_p = lambda_p.to_absolute().value
-    wl_s = lambda_s.to_absolute().value
-    wl_i = lambda_i.to_absolute().value
 
-    (n_p, n_s, _) = crystal.refractive_indices(lambda_p, lambda_s, lambda_i)
+    from .pump_envelope import gaussian as pef
 
-    k_p = (2 * np.pi * n_p) / wl_p
-    k_s = (2 * np.pi * n_s) / wl_s
-    # k_i = (2 * np.pi * n_i) / wl_i
-    k_g = (2 * np.pi) / (poling_period)  # Grating vector
+    # assert len(wavelength_pump.value) == 1
+    assert len(wavelength_target.value) > 1
 
-    signal_wavelengths = np.zeros(num_points)
-    idler_wavelengths = np.zeros(num_points)
+    wavelength_sibling = sibling_wavelength(
+        wavelength_pump,
+        wavelength_target,
+    )
 
     temperature = np.linspace(temp_range[0], temp_range[1], num_points)
+    central_wavelength_signal = np.zeros(num_points)
+    central_wavelength_idler = np.zeros(num_points)
+    tuning_map = np.zeros([num_points, len(wavelength_target.value)])
 
     for i, T in enumerate(temperature):
+        expansion_factor = expansion(T)
+        _poling_period = poling_period * expansion_factor
+        length = crystal_length * expansion_factor
 
-        def phase_mismatch_at_T(wl_s):
-            # _lambda_s = Wavelength(wl_s, Magnitude.base)
-            lambda_i_value = 1.0 / (
-                (1.0 / lambda_p.to_absolute().value) - (1.0 / wl_s)
-            )
-            lambda_i_obj = Wavelength(lambda_i_value, Magnitude.base)
-            _n_i = crystal.refractive_index(lambda_i_obj, Photon.idler, T)
-            k_i = (2 * np.pi * _n_i) / wl_i
-            mismatch = k_p - k_s - k_i - k_g
-            return mismatch
-
-        lambda_s_guess = lambda_s.to_absolute().value
-
-        # Use root_scalar instead of root for a single equation
-        result = root(
-            phase_mismatch_at_T,
-            lambda_s_guess,
+        delta_k = delta_k_matrix(
+            wavelength_pump,
+            wavelength_target,
+            wavelength_sibling,
+            crystal,
+            temperature=T,
         )
-        if result.success:
-            lambda_s_res = result.x[0]
-            lambda_i = 1.0 / (
-                (1.0 / lambda_p.to_absolute().value) - (1.0 / lambda_s_res)
+
+        # Calculate the phase matching function
+        phase_matching = phase_matching_function(
+            delta_k,
+            _poling_period,
+            length,
+        )
+
+        sigma_lambda_p = Wavelength(0.3, Magnitude.nano)
+        sigma_p = (
+            2
+            * np.pi
+            * bandwidth_conversion(
+                sigma_lambda_p,
+                wavelength_pump,
             )
+        )
+        pump_envelope = pef(
+            wavelength_pump,
+            sigma_p,
+            wavelength_target,
+            wavelength_sibling,
+        )
 
-            signal_wavelengths[i] = lambda_s_res
-            idler_wavelengths[i] = lambda_i
+        JSA = joint_spectral_amplitude(phase_matching, pump_envelope)
 
-        else:
-            signal_wavelengths[i] = np.nan
-            idler_wavelengths[i] = np.nan
+        marginal_spectra = calculate_jsa_marginals(
+            JSA,
+            wavelength_target,
+            wavelength_sibling,
+        )
 
-    return (temperature, signal_wavelengths, idler_wavelengths)
+        signal = marginal_spectra['signal_intensity']
+        idler = marginal_spectra['idler_intensity']
+
+        central_wavelength_signal[i] = _central_wavelength(
+            marginal_spectra['signal_wl'],
+            np.abs(marginal_spectra['signal_intensity']),
+        )
+
+        central_wavelength_idler[i] = _central_wavelength(
+            marginal_spectra['idler_wl'],
+            np.abs(marginal_spectra['idler_intensity']),
+        )
+
+        tuning_map[i, :] = signal + idler
+
+    return (
+        temperature,
+        central_wavelength_signal,
+        central_wavelength_idler,
+        tuning_map,
+    )
