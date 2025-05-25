@@ -1,8 +1,11 @@
 testing
+figures
+grids
 out
 build
 dist
 site
+*.pkl
 __pycache__
 *.egg-info
 .mypy_cache

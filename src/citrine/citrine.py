@@ -9,7 +9,10 @@ __all__ = [
     'AngularFrequency',
     'Wavelength',
     'spectral_window',
-    'SellmeierCoefficients',
+    'DispersionCoefficients',
+    'SellmeierCoefficientsSimple',
+    'SellmeierCoefficientsTemperatureDependent',
+    'SellmeierCoefficientsJundt',
     '_permittivity',
     '_n_0',
     '_n_i',
@@ -154,16 +157,22 @@ def spectral_window(
     width = spectral_width.to_unit(central_wavelength.unit).value / 2
     centre = central_wavelength.value
 
-    if reverse is False:
-        wvls = np.linspace(centre - width, centre + width, steps)
-    else:
-        wvls = np.linspace(centre + width, centre - width, steps)
+    start = centre - width
+    stop = centre + width
 
-    return Wavelength(wvls, central_wavelength.unit)
+    if reverse:
+        (start, stop) = (stop, start)
+
+    return Wavelength(
+        np.linspace(start, stop, steps),
+        central_wavelength.unit,
+    )
 
 
+# TODO: make new sellmeier type
+# TODO: add refractive index calculation for both types
 @dataclass(frozen=True)
-class SellmeierCoefficients:
+class DispersionCoefficients:
     """
     Sellmeier coefficients for calculating refractive indices.
 
@@ -182,6 +191,131 @@ class SellmeierCoefficients:
     second_order: Optional[Union[List[float], NDArray]]
     temperature: float
     zeroth_order: Optional[Union[List[float], NDArray]] = None
+    dn_dt: Optional[float] = None
+
+
+@dataclass(frozen=True)
+class SellmeierCoefficientsSimple:
+    coefficients: Union[List[float], NDArray[np.floating]]
+    temperature: float
+    dn_dt: Optional[float] = None
+
+    def refractive_index(
+        self,
+        wavelength: Wavelength,
+        temperature: Optional[float] = None,
+    ):
+        if temperature is None:
+            temperature = self.temperature
+
+        wavelength_um = wavelength.to_unit(Magnitude.micro).value
+
+        n0 = np.sqrt(
+            _permittivity_from_sellmeier(self.coefficients, wavelength_um)
+        )
+
+        n1 = 0.0
+        if self.dn_dt is not None:
+            temperature_scaling = (
+                temperature - (self.temperature + 273.16)
+            ) / 273.16
+            n1 = self.dn_dt * temperature_scaling
+
+        n = n0 + n1
+        return n
+
+
+@dataclass(frozen=True)
+class SellmeierCoefficientsTemperatureDependent:
+    first_order: Optional[Union[List[float], NDArray]]
+    second_order: Optional[Union[List[float], NDArray]]
+    temperature: float
+    zeroth_order: Optional[Union[List[float], NDArray]] = None
+
+    def refractive_index(
+        self,
+        wavelength: Wavelength,
+        temperature: Optional[float] = None,
+    ):
+        if temperature is None:
+            temperature = self.temperature
+
+        t_offset = temperature - self.temperature
+        wavelength_um = wavelength.to_unit(Magnitude.micro).value
+
+        n0 = 0.0
+        if self.zeroth_order is not None:
+            n0 = _n_0(self.zeroth_order, wavelength_um)
+
+        n1 = 0.0
+        if self.first_order is not None:
+            n1 = _n_i(self.first_order, wavelength_um)
+
+        n2 = 0.0
+        if self.first_order is not None:
+            n2 = _n_i(self.second_order, wavelength_um)
+
+        n = n0 + (n1 * t_offset) + (n2 * t_offset**2)
+        return n
+
+
+@dataclass(frozen=True)
+class SellmeierCoefficientsJundt:
+    a_terms: Union[List[float], NDArray[np.floating]]
+    b_terms: Union[List[float], NDArray[np.floating]]
+    temperature: float
+
+    def __post_init__(self):
+        assert len(self.a_terms) - 2 == len(self.b_terms), (
+            "Lengths of 'a_terms' and 'b_terms' is incorrect"
+        )
+
+    def refractive_index(
+        self,
+        wavelength: Wavelength,
+        temperature: Optional[float] = None,
+    ):
+        if temperature is None:
+            temperature = self.temperature
+
+        n = _refractive_index_from_sellmeier_Jundt(
+            self.a_terms,
+            self.b_terms,
+            wavelength.to_unit(Magnitude.micro).value,
+            temperature,
+            self.temperature,
+        )
+
+        return n
+
+
+@dataclass(frozen=True)
+class SellmeierCoefficientsBornAndWolf:
+    coefficients: Union[List[float], NDArray[np.floating]]
+    temperature: float
+
+    def __post_init__(self):
+        assert len(self.coefficients) == 6, (
+            'Born and Wolf Sellmeier formalism has 6 coefficients'
+        )
+
+    def refractive_index(
+        self,
+        wavelength: Wavelength,
+        temperature: Optional[float] = None,
+    ):
+        if temperature is None:
+            temperature = self.temperature
+
+        wl_sq = wavelength.to_unit(Magnitude.micro).value ** 2
+
+        p = 0.0
+        for number, denom in zip(
+            self.coefficients[0::2], self.coefficients[1::2]
+        ):
+            p += (number * wl_sq) / (wl_sq - denom)
+
+        return np.sqrt(p)
 
 
 def _permittivity(
@@ -238,6 +372,62 @@ def _permittivity(
     return p
 
 
+def _permittivity_from_sellmeier(
+    sellmeier: Union[List[float], NDArray],
+    wavelength_um: Union[float, NDArray[np.floating]],
+) -> Union[float, NDArray[np.floating]]:
+    # Take array of sellemeier coefficients of the form [A, B, C, D, E, ...]
+    # and split into A, [B, C, ...], E
+    first, *coeffs, last = sellmeier
+    assert len(coeffs) % 2 == 0
+
+    # Square the wavelength (in micrometers)
+    wl = wavelength_um**2
+
+    # Initialize the permittivity with the first coefficient
+    p = first
+
+    # Iterate through the Sellmeier coefficients in pairs
+    # coeffs[0::2] correspond to B, D, ... -> numerator
+    # coeffs[1::2] correspond to C, E, ... -> denominator
+    for number, denom in zip(coeffs[0::2], coeffs[1::2]):
+        # Apply the Sellmeier equation term:
+        p += number / (wl + denom)
+
+    # Apply the final term of the Sellmeier equation
+    # Subtract the last coefficient multiplied by the squared wavelength
+    p += last * wl
+    return p
+
+
+def _refractive_index_from_sellmeier_Jundt(
+    sellmeier_a: Union[List[float], NDArray],
+    sellmeier_b: Union[List[float], NDArray],
+    wavelength_um: Union[float, NDArray[np.floating]],
+    temperature: float,
+    temperature_base: float,
+) -> Union[float, NDArray[np.floating]]:
+    f = (temperature - temperature_base) * (
+        temperature + temperature_base + (2 * 273.16)
+    )
+    wvl_sq = wavelength_um**2
+    p = (
+        sellmeier_a[0]
+        + (sellmeier_b[0] * f)
+        + (
+            (sellmeier_a[1] + sellmeier_b[1] * f)
+            / (wvl_sq - (sellmeier_a[2] + (sellmeier_b[2] * f)) ** 2)
+        )
+        + (
+            (sellmeier_a[3] + sellmeier_b[3] * f)
+            / (wvl_sq - sellmeier_a[4] ** 2)
+        )
+        - (sellmeier_a[5] * wvl_sq)
+    )
+    n = np.sqrt(p)
+    return n
+
+
 def _n_0(
     sellmeier: Union[List[float], NDArray],
     wavelength_um: Union[float, NDArray[np.floating]],
@@ -280,7 +470,7 @@ def _n_i(
 
 
 def refractive_index(
-    sellmeier: SellmeierCoefficients,
+    sellmeier: DispersionCoefficients,
     wavelength: Wavelength,
     temperature: Optional[float] = None,
 ) -> Union[float, NDArray[np.floating]]:
@@ -303,27 +493,39 @@ def refractive_index(
         temperature = sellmeier.temperature
 
     wavelength_um = wavelength.to_unit(Magnitude.micro).value
+    t_offset = (
+        temperature - sellmeier.temperature
+    )  # TODO: change over to Kelvin?
+
     n0: Union[float, NDArray[np.floating]] = 0.0
     if sellmeier.zeroth_order is not None:
         n0 = _n_0(sellmeier.zeroth_order, wavelength_um)
 
-    n1 = None
+    n1 = 0.0
     if sellmeier.first_order is not None:
-        n1 = _n_i(sellmeier.first_order, wavelength_um)
+        n1 = _n_i(sellmeier.first_order, wavelength_um) * t_offset
 
-    n2 = None
+    n0: Union[float, NDArray[np.floating]] = 0.0
+    n1: Union[float, NDArray[np.floating]] = 0.0
+
+    if sellmeier.dn_dt is not None:
+        n0 = np.sqrt(
+            _permittivity_from_sellmeier(sellmeier.zeroth_order, wavelength_um)
+        )
+        temp = (temperature - (sellmeier.temperature + 273.15)) / 273.15
+        n1 = sellmeier.dn_dt * temp
+    else:
+        if sellmeier.zeroth_order is not None:
+            n0 = _n_0(sellmeier.zeroth_order, wavelength_um)
+
+        if sellmeier.first_order is not None:
+            n1 = _n_i(sellmeier.first_order, wavelength_um) * t_offset
+
+    n2 = 0.0
     if sellmeier.second_order is not None:
         n2 = _n_i(sellmeier.second_order, wavelength_um)
 
-    t_offset = temperature - sellmeier.temperature
-
-    if n1 is None:
-        n1 = 0.0
-
-    if n2 is None:
-        n2 = 0.0
-
-    n = n0 + (n1 * t_offset) + (n2 * t_offset**2)
+    n = n0 + n1 + (n2 * t_offset**2)
     return n
 
 
@@ -394,8 +596,20 @@ class Crystal:
     def __init__(
         self,
         name: str,
-        sellmeier_o: SellmeierCoefficients,
-        sellmeier_e: SellmeierCoefficients,
+        # sellmeier_o: DispersionCoefficients,  # TODO: These should be a union of SellmeierCoefficients or DispersionCoefficients
+        # sellmeier_e: DispersionCoefficients,  # TODO: These should be a union of SellmeierCoefficients or DispersionCoefficients
+        sellmeier_o: Union[
+            SellmeierCoefficientsSimple,
+            SellmeierCoefficientsTemperatureDependent,
+            SellmeierCoefficientsJundt,
+            SellmeierCoefficientsBornAndWolf,
+        ],
+        sellmeier_e: Union[
+            SellmeierCoefficientsSimple,
+            SellmeierCoefficientsTemperatureDependent,
+            SellmeierCoefficientsJundt,
+            SellmeierCoefficientsBornAndWolf,
+        ],
         phase_matching: PhaseMatchingCondition,
         doi: str = None,
     ):
@@ -443,7 +657,14 @@ class Crystal:
             )
         self._phase_matching = condition
 
-    def _sellmeier(self, polarisation: Orientation) -> SellmeierCoefficients:
+    # def _sellmeier(self, polarisation: Orientation) -> DispersionCoefficients:
+    def _sellmeier(
+        self, polarisation: Orientation
+    ) -> Union[
+        SellmeierCoefficientsSimple,
+        SellmeierCoefficientsTemperatureDependent,
+        SellmeierCoefficientsJundt,
+    ]:
         if not isinstance(polarisation, Orientation):
             raise ValueError(
                 'Polarisation must be an Orientation'
@@ -474,7 +695,8 @@ class Crystal:
         """
 
         sellmeier = self._sellmeier(self.phase_matching.value[photon.value])
-        return refractive_index(sellmeier, wavelength, temperature)
+        # return refractive_index(sellmeier, wavelength, temperature)
+        return sellmeier.refractive_index(wavelength, temperature)
 
     def refractive_indices(
         self,
@@ -707,7 +929,7 @@ def calculate_marginal_spectrum(
     pt = photon_type.value
     assert (pt == 0) or (pt == 1), 'photon_type must be SIGNAL OR IDLER'
 
-    intensities = np.sum(jsa_matrix.T, axis=pt)
+    intensities = np.sum(np.abs(jsa_matrix.T), axis=pt)
     wavelengths = lambda_i.value
 
     # if photon_type == PhotonType.IDLER:
@@ -926,8 +1148,8 @@ def hom_interference_from_jsa(
     )
 
     # The choice of bunching or antibunching sets the type of interference
-    #   being simulated, positive corresponds to constructive interference
-    #   (bunching) and negative corresponds to destructive interference
+    #   being simulated, positive corresponds to destructive interference
+    #   (bunching) and negative corresponds to constructive interference
     #   (antibunching)
     sign = float(bunching.value)
 
@@ -1017,7 +1239,7 @@ def spectral_purity(jsa: np.ndarray) -> Tuple[float, float, float]:
 
     Notes:
         The function performs these steps:
-        1. SVD decomposition of the JSA
+        1. Singular value decomposition of the JSA
         2. Computes quantum metrics (purity, Schmidt number, entropy)
 
     """
@@ -1189,6 +1411,22 @@ def wavelength_temperature_tuning(
     central_wavelength_idler = np.zeros(num_points)
     tuning_map = np.zeros([num_points, len(wavelength_target.value)])
 
+    sigma_lambda_p = Wavelength(0.3, Magnitude.nano)
+    sigma_p = (
+        2
+        * np.pi
+        * bandwidth_conversion(
+            sigma_lambda_p,
+            wavelength_pump,
+        )
+    )
+    pump_envelope = pef(
+        wavelength_pump,
+        sigma_p,
+        wavelength_target,
+        wavelength_sibling,
+    )
+
     for i, T in enumerate(temperature):
         expansion_factor = expansion(T)
         _poling_period = poling_period * expansion_factor
@@ -1207,22 +1445,6 @@ def wavelength_temperature_tuning(
             delta_k,
             _poling_period,
             length,
-        )
-
-        sigma_lambda_p = Wavelength(0.3, Magnitude.nano)
-        sigma_p = (
-            2
-            * np.pi
-            * bandwidth_conversion(
-                sigma_lambda_p,
-                wavelength_pump,
-            )
-        )
-        pump_envelope = pef(
-            wavelength_pump,
-            sigma_p,
-            wavelength_target,
-            wavelength_sibling,
         )
 
         JSA = joint_spectral_amplitude(phase_matching, pump_envelope)
