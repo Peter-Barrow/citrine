@@ -8,6 +8,16 @@ from .citrine import (
 )
 from numpy import array
 
+__all__ = [
+    'KTiOPO4_Fradkin',
+    'KTiOPO4_Emanueli',
+    'KTiOAsO4_Emanueli',
+    'LiNbO3_Zelmon',
+    'LiNbO3_5molMgO_Zelmon',
+    'LiNbO3_Newlight',
+    'LiNbO3_5molMgO_Gayer',
+]
+
 
 KTiOPO4_Fradkin = Crystal(
     name='Potassium Titanyl Phosphate',

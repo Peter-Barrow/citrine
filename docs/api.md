@@ -26,7 +26,19 @@
         show_root_heading: true
         show_source: false
 
-:::citrine.SellmeierCoefficients
+:::citrine.SellmeierCoefficientsSimple
+    options:
+        allow_inspection: false
+        show_root_heading: true
+        show_source: false
+
+:::citrine.SellmeierCoefficientsTemperatureDependent
+    options:
+        allow_inspection: false
+        show_root_heading: true
+        show_source: false
+
+:::citrine.SellmeierCoefficientsJundt
     options:
         allow_inspection: false
         show_root_heading: true
@@ -45,12 +57,6 @@
         show_source: true
 
 :::citrine._n_i
-    options:
-        allow_inspection: false
-        show_root_heading: true
-        show_source: true
-
-:::citrine.refractive_index
     options:
         allow_inspection: false
         show_root_heading: true
@@ -156,13 +162,13 @@
 
 ## Phase Matching Functions
 
-:::citrine.phase_matching.pmf_gaussian
+:::citrine.pmf_gaussian
     options:
         allow_inspection: false
         show_root_heading: true
         show_source: true
 
-:::citrine.phase_matching.pmf_antisymmetric
+:::citrine.pmf_antisymmetric
     options:
         allow_inspection: false
         show_root_heading: true
@@ -171,19 +177,19 @@
 
 ## Pump Envelope Functions
 
-:::citrine.pump_envelope.gaussian
+:::citrine.gaussian
     options:
         allow_inspection: false
         show_root_heading: true
         show_source: false
 
-:::citrine.pump_envelope.sech2
+:::citrine.sech2
     options:
         allow_inspection: false
         show_root_heading: true
         show_source: false
 
-:::citrine.pump_envelope.skewed_gaussian
+:::citrine.skewed_gaussian
     options:
         allow_inspection: false
         show_root_heading: true
@@ -191,34 +197,86 @@
 
 ## Crystal Library
 
-:::citrine.crystals.KTiOPO4_Fradkin
+:::citrine.KTiOPO4_Fradkin
     options:
         allow_inspection: false
         show_root_heading: true
         show_source: true
 
-:::citrine.crystals.KTiOPO4_Emanueli
+:::citrine.KTiOPO4_Emanueli
     options:
         allow_inspection: false
         show_root_heading: true
         show_source: true
 
-:::citrine.crystals.KTiOAsO4_Emanueli
-    options:
-        allow_inspection: false
-        show_root_heading: true
-        show_source: true
-
-
-:::citrine.crystals.LiNbO3_Zelmon
+:::citrine.KTiOAsO4_Emanueli
     options:
         allow_inspection: false
         show_root_heading: true
         show_source: true
 
 
-:::citrine.crystals.LiNbO3_5molMgO_Zelmon
+:::citrine.LiNbO3_Zelmon
     options:
         allow_inspection: false
         show_root_heading: true
         show_source: true
+
+
+:::citrine.LiNbO3_5molMgO_Zelmon
+    options:
+        allow_inspection: false
+        show_root_heading: true
+        show_source: true
+
+:::citrine.LiNbO3_Newlight
+    options:
+        allow_inspection: false
+        show_root_heading: true
+        show_source: true
+
+:::citrine.LiNbO3_5molMgO_Gayer
+    options:
+        allow_inspection: false
+        show_root_heading: true
+        show_source: true
+
+
+## Brightness and Heralding
+
+:::citrine.photon_pair_coupling_filter
+    options:
+        allow_inspection: false
+        show_root_heading: true
+        show_source: false
+
+
+:::citrine.single_photon_coupling_filter
+    options:
+        allow_inspection: false
+        show_root_heading: true
+        show_source: false
+
+:::citrine.brightness_and_heralding
+    options:
+        allow_inspection: false
+        show_root_heading: true
+        show_source: false
+
+:::citrine.calculate_optimisation_grid
+    options:
+        allow_inspection: false
+        show_root_heading: true
+        show_source: false
+
+:::citrine.make_lookup_table
+    options:
+        allow_inspection: false
+        show_root_heading: true
+        show_source: false
+
+:::citrine.BrightnessHeraldingLUT
+    options:
+        allow_inspection: false
+        show_root_heading: true
+        show_source: false

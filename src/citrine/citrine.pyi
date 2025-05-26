@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from numpy.typing import NDArray
 
-__all__ = ['Magnitude', 'AngularFrequency', 'Wavelength', 'spectral_window', 'DispersionCoefficients', 'SellmeierCoefficientsSimple', 'SellmeierCoefficientsTemperatureDependent', 'SellmeierCoefficientsJundt', '_permittivity', '_n_0', '_n_i', 'refractive_index', 'Orientation', 'PhaseMatchingCondition', 'Photon', 'Crystal', 'calculate_grating_period', 'delta_k_matrix', 'phase_matching_function', 'phase_mismatch', 'joint_spectral_amplitude', 'PhotonType', 'calculate_marginal_spectrum', 'calculate_jsa_marginals', 'bandwidth_conversion', 'Time', 'Bunching', 'hom_interference_from_jsa', 'hong_ou_mandel_interference', 'spectral_purity', 'sibling_wavelength', 'wavelength_temperature_tuning']
+__all__ = ['Magnitude', 'AngularFrequency', 'Wavelength', 'spectral_window', 'SellmeierCoefficientsSimple', 'SellmeierCoefficientsTemperatureDependent', 'SellmeierCoefficientsJundt', '_permittivity', '_n_0', '_n_i', 'Orientation', 'PhaseMatchingCondition', 'Photon', 'Crystal', 'calculate_grating_period', 'delta_k_matrix', 'phase_matching_function', 'phase_mismatch', 'joint_spectral_amplitude', 'PhotonType', 'calculate_marginal_spectrum', 'calculate_jsa_marginals', 'bandwidth_conversion', 'Time', 'Bunching', 'hom_interference_from_jsa', 'hong_ou_mandel_interference', 'spectral_purity', 'sibling_wavelength', 'wavelength_temperature_tuning']
 
 class Magnitude(Enum):
     pico = -12
@@ -31,14 +31,6 @@ class Wavelength:
     def downconversion_result(self, downconversion: Wavelength) -> Wavelength: ...
 
 def spectral_window(central_wavelength: Wavelength, spectral_width: Wavelength, steps: int, reverse: bool = False) -> Wavelength: ...
-
-@dataclass(frozen=True)
-class DispersionCoefficients:
-    first_order: list[float] | NDArray | None
-    second_order: list[float] | NDArray | None
-    temperature: float
-    zeroth_order: list[float] | NDArray | None = ...
-    dn_dt: float | None = ...
 
 @dataclass(frozen=True)
 class SellmeierCoefficientsSimple:
@@ -73,7 +65,6 @@ class SellmeierCoefficientsBornAndWolf:
 def _permittivity(sellmeier: list[float] | NDArray, wavelength_um: float | NDArray[np.floating]) -> float | NDArray[np.floating]: ...
 def _n_0(sellmeier: list[float] | NDArray, wavelength_um: float | NDArray[np.floating]) -> float | NDArray[np.floating]: ...
 def _n_i(sellmeier: list[float] | NDArray[np.floating], wavelength_um: float | NDArray[np.floating]) -> float | NDArray[np.floating]: ...
-def refractive_index(sellmeier: DispersionCoefficients, wavelength: Wavelength, temperature: float | None = None) -> float | NDArray[np.floating]: ...
 
 class Orientation(Enum):
     ordinary = 0
