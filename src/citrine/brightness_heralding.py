@@ -10,7 +10,6 @@ from scipy.interpolate import RegularGridInterpolator
 from dataclasses import dataclass
 import citrine
 
-
 _HAVE_TQDM = False
 try:
     from tqdm import tqdm
@@ -25,6 +24,7 @@ __all__ = [
     'brightness_and_heralding',
     'calculate_optimisation_grid',
     'make_lookup_table',
+    'BrightnessHeraldingLUT',
 ]
 
 
