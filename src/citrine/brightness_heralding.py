@@ -300,10 +300,8 @@ def brightness_and_heralding(
         Tuple[float, float, float]: A tuple containing:
             - K1 (float): Single photon coupling factor K1/(kp0·L). Related to heralded
               single photon brightness.
-
             - K2 (float): Photon pair coupling factor K2/(kp0·L). Related to coincidence
               brightness.
-
             - heralding (float): Heralding ratio Γ2|1 = K2/K1. Measures the conditional
               probability of detecting the idler photon given detection of the signal photon.
 
