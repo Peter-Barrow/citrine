@@ -9,14 +9,14 @@ __all__ = [
     'AngularFrequency',
     'Wavelength',
     'spectral_window',
-    'DispersionCoefficients',
+    # 'DispersionCoefficients',
     'SellmeierCoefficientsSimple',
     'SellmeierCoefficientsTemperatureDependent',
     'SellmeierCoefficientsJundt',
     '_permittivity',
     '_n_0',
     '_n_i',
-    'refractive_index',
+    # 'refractive_index',
     'Orientation',
     'PhaseMatchingCondition',
     'Photon',
@@ -57,6 +57,27 @@ class Magnitude(Enum):
     kilo = 3
     mega = 6
     giga = 9
+
+    def __repr__(self):
+        symbol = None
+        if self == Magnitude.pico:
+            symbol = 'p'
+        elif self == Magnitude.nano:
+            symbol = 'n'
+        elif self == Magnitude.micro:
+            symbol = 'µ'
+        elif self == Magnitude.milli:
+            symbol = 'm'
+        elif self == Magnitude.base:
+            symbol = ''
+        elif self == Magnitude.kilo:
+            symbol = 'K'
+        elif self == Magnitude.mega:
+            symbol = 'M'
+        elif self == Magnitude.giga:
+            symbol = 'G'
+
+        return symbol
 
 
 @dataclass
@@ -136,6 +157,11 @@ class Wavelength:
         )
         return Wavelength(abs(wvl), Magnitude.base)
 
+    def __str__(self):
+        symbol = self.unit.__repr__()
+        out = f'{self.value:.2f} {symbol}m'
+        return out
+
 
 def spectral_window(
     central_wavelength: Wavelength,
@@ -169,29 +195,29 @@ def spectral_window(
     )
 
 
-# TODO: make new sellmeier type
-# TODO: add refractive index calculation for both types
-@dataclass(frozen=True)
-class DispersionCoefficients:
-    """
-    Sellmeier coefficients for calculating refractive indices.
-
-    Attributes:
-        zeroth_order (Union[List[float], NDArray]): Zeroth-order Sellmeier
-            coefficients.
-        first_order (Union[List[float], NDArray]): First-order Sellmeier
-            coefficients.
-        second_order (Union[List[float], NDArray]): Second-order Sellmeier
-            coefficients.
-        temperature (float): The reference temperature for the coefficients
-            (in Celsius).
-    """
-
-    first_order: Optional[Union[List[float], NDArray]]
-    second_order: Optional[Union[List[float], NDArray]]
-    temperature: float
-    zeroth_order: Optional[Union[List[float], NDArray]] = None
-    dn_dt: Optional[float] = None
+# # TODO: make new sellmeier type
+# # TODO: add refractive index calculation for both types
+# @dataclass(frozen=True)
+# class DispersionCoefficients:
+#     """
+#     Sellmeier coefficients for calculating refractive indices.
+#
+#     Attributes:
+#         zeroth_order (Union[List[float], NDArray]): Zeroth-order Sellmeier
+#             coefficients.
+#         first_order (Union[List[float], NDArray]): First-order Sellmeier
+#             coefficients.
+#         second_order (Union[List[float], NDArray]): Second-order Sellmeier
+#             coefficients.
+#         temperature (float): The reference temperature for the coefficients
+#             (in Celsius).
+#     """
+#
+#     first_order: Optional[Union[List[float], NDArray]]
+#     second_order: Optional[Union[List[float], NDArray]]
+#     temperature: float
+#     zeroth_order: Optional[Union[List[float], NDArray]] = None
+#     dn_dt: Optional[float] = None
 
 
 @dataclass(frozen=True)
@@ -469,64 +495,64 @@ def _n_i(
     return n
 
 
-def refractive_index(
-    sellmeier: DispersionCoefficients,
-    wavelength: Wavelength,
-    temperature: Optional[float] = None,
-) -> Union[float, NDArray[np.floating]]:
-    """
-    Calculate the refractive index for a given wavelength and temperature using
-        the Sellmeier equation.
-
-    Args:
-        sellmeier (SellmeierCoefficients): The Sellmeier coefficients for the
-            material.
-        wavelength (Wavelength): The wavelength at which to calculate the
-            refractive index.
-        temperature (Optional[float]): The temperature (in Celsius), defaults
-            to the reference temperature.
-
-    Returns:
-        float: The refractive index at the given wavelength and temperature.
-    """
-    if temperature is None:
-        temperature = sellmeier.temperature
-
-    wavelength_um = wavelength.to_unit(Magnitude.micro).value
-    t_offset = (
-        temperature - sellmeier.temperature
-    )  # TODO: change over to Kelvin?
-
-    n0: Union[float, NDArray[np.floating]] = 0.0
-    if sellmeier.zeroth_order is not None:
-        n0 = _n_0(sellmeier.zeroth_order, wavelength_um)
-
-    n1 = 0.0
-    if sellmeier.first_order is not None:
-        n1 = _n_i(sellmeier.first_order, wavelength_um) * t_offset
-
-    n0: Union[float, NDArray[np.floating]] = 0.0
-    n1: Union[float, NDArray[np.floating]] = 0.0
-
-    if sellmeier.dn_dt is not None:
-        n0 = np.sqrt(
-            _permittivity_from_sellmeier(sellmeier.zeroth_order, wavelength_um)
-        )
-        temp = (temperature - (sellmeier.temperature + 273.15)) / 273.15
-        n1 = sellmeier.dn_dt * temp
-    else:
-        if sellmeier.zeroth_order is not None:
-            n0 = _n_0(sellmeier.zeroth_order, wavelength_um)
-
-        if sellmeier.first_order is not None:
-            n1 = _n_i(sellmeier.first_order, wavelength_um) * t_offset
-
-    n2 = 0.0
-    if sellmeier.second_order is not None:
-        n2 = _n_i(sellmeier.second_order, wavelength_um)
-
-    n = n0 + n1 + (n2 * t_offset**2)
-    return n
+# def refractive_index(
+#     sellmeier: DispersionCoefficients,
+#     wavelength: Wavelength,
+#     temperature: Optional[float] = None,
+# ) -> Union[float, NDArray[np.floating]]:
+#     """
+#     Calculate the refractive index for a given wavelength and temperature using
+#         the Sellmeier equation.
+#
+#     Args:
+#         sellmeier (SellmeierCoefficients): The Sellmeier coefficients for the
+#             material.
+#         wavelength (Wavelength): The wavelength at which to calculate the
+#             refractive index.
+#         temperature (Optional[float]): The temperature (in Celsius), defaults
+#             to the reference temperature.
+#
+#     Returns:
+#         float: The refractive index at the given wavelength and temperature.
+#     """
+#     if temperature is None:
+#         temperature = sellmeier.temperature
+#
+#     wavelength_um = wavelength.to_unit(Magnitude.micro).value
+#     t_offset = (
+#         temperature - sellmeier.temperature
+#     )  # TODO: change over to Kelvin?
+#
+#     n0: Union[float, NDArray[np.floating]] = 0.0
+#     if sellmeier.zeroth_order is not None:
+#         n0 = _n_0(sellmeier.zeroth_order, wavelength_um)
+#
+#     n1 = 0.0
+#     if sellmeier.first_order is not None:
+#         n1 = _n_i(sellmeier.first_order, wavelength_um) * t_offset
+#
+#     n0: Union[float, NDArray[np.floating]] = 0.0
+#     n1: Union[float, NDArray[np.floating]] = 0.0
+#
+#     if sellmeier.dn_dt is not None:
+#         n0 = np.sqrt(
+#             _permittivity_from_sellmeier(sellmeier.zeroth_order, wavelength_um)
+#         )
+#         temp = (temperature - (sellmeier.temperature + 273.15)) / 273.15
+#         n1 = sellmeier.dn_dt * temp
+#     else:
+#         if sellmeier.zeroth_order is not None:
+#             n0 = _n_0(sellmeier.zeroth_order, wavelength_um)
+#
+#         if sellmeier.first_order is not None:
+#             n1 = _n_i(sellmeier.first_order, wavelength_um) * t_offset
+#
+#     n2 = 0.0
+#     if sellmeier.second_order is not None:
+#         n2 = _n_i(sellmeier.second_order, wavelength_um)
+#
+#     n = n0 + n1 + (n2 * t_offset**2)
+#     return n
 
 
 class Orientation(Enum):
@@ -596,8 +622,6 @@ class Crystal:
     def __init__(
         self,
         name: str,
-        # sellmeier_o: DispersionCoefficients,  # TODO: These should be a union of SellmeierCoefficients or DispersionCoefficients
-        # sellmeier_e: DispersionCoefficients,  # TODO: These should be a union of SellmeierCoefficients or DispersionCoefficients
         sellmeier_o: Union[
             SellmeierCoefficientsSimple,
             SellmeierCoefficientsTemperatureDependent,
@@ -657,7 +681,6 @@ class Crystal:
             )
         self._phase_matching = condition
 
-    # def _sellmeier(self, polarisation: Orientation) -> DispersionCoefficients:
     def _sellmeier(
         self, polarisation: Orientation
     ) -> Union[
