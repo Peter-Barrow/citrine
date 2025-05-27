@@ -159,7 +159,7 @@ wheels = [
 ]
 
 [[package]]
-name = "citrine"
+name = "citrinespdc"
 version = "0.2.0"
 source = { editable = "." }
 dependencies = [
